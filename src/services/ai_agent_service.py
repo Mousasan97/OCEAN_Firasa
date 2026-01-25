@@ -430,9 +430,9 @@ class PersonalityCoachService:
         try:
             # Build message history for multi-turn conversation
             if message_history:
-                from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, UserPromptPart
+                from pydantic_ai import ModelRequest, ModelResponse, UserPromptPart, TextPart
 
-                messages: List[ModelMessage] = []
+                messages = []
                 for msg in message_history:
                     if msg['role'] == 'user':
                         messages.append(ModelRequest(parts=[UserPromptPart(content=msg['content'])]))
@@ -493,7 +493,7 @@ class PersonalityCoachService:
             # Build message history for multi-turn conversation
             messages = None
             if message_history:
-                from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, UserPromptPart
+                from pydantic_ai import ModelRequest, ModelResponse, UserPromptPart, TextPart
 
                 messages = []
                 for msg in message_history:
