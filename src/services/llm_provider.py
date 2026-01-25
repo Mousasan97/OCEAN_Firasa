@@ -12,7 +12,7 @@ from typing import Optional, Type, TypeVar, Any, List
 from pydantic import BaseModel, ValidationError
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.models.gemini import GeminiModel
 
 from src.utils.logger import get_logger
@@ -94,15 +94,18 @@ class LLMProvider:
         else:
             raise ValueError(f"Unsupported AI provider: {provider}. Supported: openai, vertex, gemini, anthropic")
 
-    def _create_openai_model(self) -> OpenAIModel:
+    def _create_openai_model(self) -> OpenAIChatModel:
         """Create OpenAI model"""
         if not settings.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY not configured")
 
+        # Set API key in environment for pydantic-ai to pick up
+        os.environ['OPENAI_API_KEY'] = settings.OPENAI_API_KEY
+
         model_name = settings.OPENAI_MODEL
         logger.info(f"Initializing OpenAI model: {model_name}")
 
-        return OpenAIModel(model_name, api_key=settings.OPENAI_API_KEY)
+        return OpenAIChatModel(model_name)
 
     def _create_vertex_model(self) -> GeminiModel:
         """Create Vertex AI model (Gemini/Gemma via Vertex AI)"""
