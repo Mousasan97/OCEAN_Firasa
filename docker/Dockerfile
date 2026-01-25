@@ -27,9 +27,10 @@ FROM base as dependencies
 
 # Copy requirements
 COPY requirements/base.txt requirements/prod.txt ./requirements/
+COPY requirements_ai_agent.txt ./
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements/prod.txt
+RUN pip install --no-cache-dir -r requirements/prod.txt -r requirements_ai_agent.txt
 
 # Stage 3: Production
 FROM base as production
@@ -52,12 +53,11 @@ RUN mkdir -p uploads processed output logs && \
 # Switch to non-root user
 USER appuser
 
-# Expose port
+# Expose port (Render uses dynamic PORT)
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/api/v1/health')"
+# Set default port (can be overridden by Render's PORT env var)
+ENV PORT=8000
 
-# Run application
-CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run application with dynamic port for Render compatibility
+CMD uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
