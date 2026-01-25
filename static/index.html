@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCEAN Personality Analysis</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=88">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="top-navbar">
+        <div class="navbar-container">
+            <!-- Logo -->
+            <div class="navbar-logo">
+                <span class="logo-text">Firasa<span class="logo-dot">.ai</span></span>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="navbar-links">
+                <a href="#" class="nav-link">Discover <span class="external-icon">↗</span></a>
+                <a href="#" class="nav-link">How it works</a>
+                <a href="#" class="nav-link">Solutions</a>
+                <a href="#" class="nav-link">Pricing</a>
+            </div>
+
+            <!-- Right Side Actions -->
+            <div class="navbar-actions">
+                <a href="#" class="nav-link nav-signin">Sign in</a>
+                <div class="language-selector">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-width="1.5"/>
+                    </svg>
+                    <span>English</span>
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <button class="btn-upload-nav" onclick="document.getElementById('uploadSection').scrollIntoView({behavior: 'smooth'})">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Upload or record video
+                </button>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button class="navbar-mobile-toggle" onclick="toggleMobileMenu()">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div class="navbar-mobile-menu" id="mobileMenu">
+            <a href="#" class="nav-link-mobile">Discover</a>
+            <a href="#" class="nav-link-mobile">How it works</a>
+            <a href="#" class="nav-link-mobile">Solutions</a>
+            <a href="#" class="nav-link-mobile">Pricing</a>
+            <a href="#" class="nav-link-mobile">Sign in</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Upload Section -->
+        <section class="upload-section" id="uploadSection">
+            <!-- Page Title -->
+            <h1 class="upload-page-title">Upload or record video</h1>
+
+            <!-- Upload Card -->
+            <div class="upload-card" id="uploadCard">
+                <!-- Choose Video File Button -->
+                <button class="btn-choose-video" onclick="document.getElementById('fileInput').click()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Choose video file
+                </button>
+                <input type="file" id="fileInput" accept="video/*" hidden>
+                <p class="upload-max-size">Max file size 128 MB</p>
+
+                <div class="upload-divider">
+                    <span>Or</span>
+                </div>
+
+                <!-- Record with Camera Button -->
+                <button class="btn-record-camera" onclick="switchInputMode('record')">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Record with camera
+                </button>
+                <p class="upload-record-hint">Answer 3 questions (~90 seconds total)</p>
+
+                <!-- Privacy Notice -->
+                <p class="upload-privacy">
+                    <span class="privacy-icon">🔒</span>
+                    Auto-deleted. Your privacy is our priority.
+                </p>
+            </div>
+
+            <!-- Video Requirements Section -->
+            <div class="video-requirements">
+                <h3 class="requirements-title requirements-dos">Do's: <span>Video requirements</span></h3>
+
+                <!-- Face clearly visible -->
+                <div class="requirement-item" id="reqFace">
+                    <div class="requirement-header" onclick="toggleRequirement('reqFace')">
+                        <span class="requirement-check do">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Face clearly visible</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content expanded">
+                        <div class="face-examples">
+                            <div class="face-example">
+                                <div class="face-placeholder">
+                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" alt="Face example 1">
+                                </div>
+                            </div>
+                            <div class="face-example">
+                                <div class="face-placeholder">
+                                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face" alt="Face example 2">
+                                </div>
+                            </div>
+                            <div class="face-example">
+                                <div class="face-placeholder">
+                                    <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face" alt="Face example 3">
+                                </div>
+                            </div>
+                            <div class="face-example">
+                                <div class="face-placeholder">
+                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face" alt="Face example 4">
+                                </div>
+                            </div>
+                            <div class="face-example">
+                                <div class="face-placeholder">
+                                    <img src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop&crop=face" alt="Face example 5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Neutral background -->
+                <div class="requirement-item" id="reqBackground">
+                    <div class="requirement-header" onclick="toggleRequirement('reqBackground')">
+                        <span class="requirement-check do">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Neutral background</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Use a plain, uncluttered background for best results.</p>
+                    </div>
+                </div>
+
+                <!-- Natural expression -->
+                <div class="requirement-item" id="reqExpression">
+                    <div class="requirement-header" onclick="toggleRequirement('reqExpression')">
+                        <span class="requirement-check do">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Natural expression</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Be yourself and speak naturally - no need to pose or act.</p>
+                    </div>
+                </div>
+
+                <!-- 25 seconds duration -->
+                <div class="requirement-item" id="reqDuration">
+                    <div class="requirement-header" onclick="toggleRequirement('reqDuration')">
+                        <span class="requirement-check do">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">25 seconds duration</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Record for at least 25 seconds for accurate analysis.</p>
+                    </div>
+                </div>
+
+                <!-- Don'ts Section -->
+                <h3 class="requirements-title requirements-donts">Don'ts: <span>Video restrictions</span></h3>
+
+                <!-- Sunglasses or face masks -->
+                <div class="requirement-item" id="reqSunglasses">
+                    <div class="requirement-header" onclick="toggleRequirement('reqSunglasses')">
+                        <span class="requirement-check dont">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Sunglasses or face masks</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Remove any face coverings for accurate facial analysis.</p>
+                    </div>
+                </div>
+
+                <!-- Heavy filters or effects -->
+                <div class="requirement-item" id="reqFilters">
+                    <div class="requirement-header" onclick="toggleRequirement('reqFilters')">
+                        <span class="requirement-check dont">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Heavy filters or effects</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Avoid beauty filters or AR effects that alter your face.</p>
+                    </div>
+                </div>
+
+                <!-- Extreme head movement -->
+                <div class="requirement-item" id="reqMovement">
+                    <div class="requirement-header" onclick="toggleRequirement('reqMovement')">
+                        <span class="requirement-check dont">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Extreme head movement</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Keep your head relatively still - natural movement is fine.</p>
+                    </div>
+                </div>
+
+                <!-- Low lighting -->
+                <div class="requirement-item" id="reqLighting">
+                    <div class="requirement-header" onclick="toggleRequirement('reqLighting')">
+                        <span class="requirement-check dont">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </span>
+                        <span class="requirement-text">Low lighting</span>
+                        <svg class="requirement-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="requirement-content">
+                        <p>Ensure good lighting so your face is clearly visible.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden upload area for drag-drop (kept for functionality) -->
+            <div class="upload-area" id="uploadArea" style="display: none;"></div>
+
+            <!-- Assessment Area (Hidden by default) -->
+            <div class="record-area" id="recordArea" style="display: none;">
+
+                <!-- Back Button -->
+                <button class="btn-back-to-upload" onclick="switchInputMode('upload')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Back to upload
+                </button>
+
+                <!-- Welcome Screen -->
+                <div class="assessment-welcome" id="assessmentWelcome">
+                    <div class="welcome-content">
+                        <div class="welcome-icon-modern">
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <span class="welcome-badge">Personality Assessment</span>
+                        <h2>The Superpower Question</h2>
+                        <p class="welcome-desc">Answer one creative question in three parts. Your response reveals unique aspects of your personality through imagination and self-expression.</p>
+                        <div class="welcome-stats">
+                            <div class="stat-item">
+                                <span class="stat-value">1</span>
+                                <span class="stat-label">Question</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-value">3</span>
+                                <span class="stat-label">Parts</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-value">~1.5</span>
+                                <span class="stat-label">Minutes</span>
+                            </div>
+                        </div>
+                        <button class="btn-start-assessment-modern" onclick="startAssessment()">
+                            Begin Assessment
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14"></path>
+                                <path d="m12 5 7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assessment Container (Sequential Questions with Overlay) -->
+                <div class="assessment-container" id="assessmentContainer" style="display: none;">
+                    <!-- Full Width Camera Section -->
+                    <div class="assessment-camera-section">
+                        <div class="camera-with-overlay camera-fullwidth">
+                            <video id="cameraPreview" autoplay muted playsinline></video>
+                            <video id="answerPreview" controls style="display: none;"></video>
+
+                            <!-- Question Card Overlay (centered on camera) -->
+                            <div class="question-overlay" id="questionOverlay">
+                                <div class="question-progress" id="questionProgress">1/3</div>
+                                <div class="question-card" id="questionCard">
+                                    <p class="question-text" id="questionText">Loading question...</p>
+                                    <p class="question-hint" id="questionHint"></p>
+                                </div>
+                            </div>
+
+                            <!-- Recording Timer (top-left) -->
+                            <div class="timer-overlay" id="recordingTimer" style="display: none;">
+                                <span class="timer-dot-live"></span>
+                                <span class="timer-text" id="timerText">00:30</span>
+                            </div>
+
+                            <!-- Countdown Overlay -->
+                            <div class="countdown-overlay" id="countdownOverlay" style="display: none;">
+                                <span class="countdown-number" id="countdownNumber">3</span>
+                            </div>
+
+                            <!-- Close Button -->
+                            <button class="overlay-close" id="closeAssessment" onclick="cancelAssessment()">×</button>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Panel: Scores + Chart -->
+                    <div class="realtime-bottom-panel" id="realtimePanel" style="display: none;">
+                        <!-- Top Row: Status + Scores -->
+                        <div class="bottom-panel-top-row">
+                            <div class="face-indicator-compact" id="faceIndicator">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <span id="faceText">Detecting...</span>
+                            </div>
+                            <div class="bottom-panel-scores" id="currentScores">
+                                <div class="score-pill" data-trait="openness">
+                                    <span class="score-letter">O</span>
+                                    <span class="score-value">-</span>
+                                </div>
+                                <div class="score-pill" data-trait="conscientiousness">
+                                    <span class="score-letter">C</span>
+                                    <span class="score-value">-</span>
+                                </div>
+                                <div class="score-pill" data-trait="extraversion">
+                                    <span class="score-letter">E</span>
+                                    <span class="score-value">-</span>
+                                </div>
+                                <div class="score-pill" data-trait="agreeableness">
+                                    <span class="score-letter">A</span>
+                                    <span class="score-value">-</span>
+                                </div>
+                                <div class="score-pill" data-trait="neuroticism">
+                                    <span class="score-letter">N</span>
+                                    <span class="score-value">-</span>
+                                </div>
+                            </div>
+                            <div class="realtime-status">
+                                <span class="status-dot" id="statusDot"></span>
+                                <span id="statusText">Connecting...</span>
+                            </div>
+                        </div>
+
+                        <!-- Full Width Chart -->
+                        <div class="bottom-panel-chart-full">
+                            <canvas id="realtimeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Frame Debug Panel: Shows processed frames with face detection -->
+                    <div class="frame-debug-panel" id="frameDebugPanel" style="display: none;">
+                        <div class="frame-debug-header">
+                            <span>Frame Debug View</span>
+                            <label class="debug-toggle">
+                                <input type="checkbox" id="frameDebugToggle" onchange="toggleFrameDebug(this.checked)">
+                                <span>Enable Debug</span>
+                            </label>
+                        </div>
+                        <div class="frame-debug-content" id="frameDebugContent">
+                            <!-- Frames will be added here dynamically -->
+                        </div>
+                        <div class="frame-debug-stats" id="frameDebugStats">
+                            <span id="debugFrameCount">Frames: 0</span>
+                            <span id="debugInferenceTime">Inference: -ms</span>
+                            <span id="debugFaceRate">Face Detection: -</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls Below Panel -->
+                    <div class="camera-controls" id="assessmentControls">
+                        <div class="controls-before" id="controlsBefore">
+                            <button class="btn-record-minimal" onclick="startQuestionRecording()">
+                                <span class="rec-dot"></span>
+                                Start Recording
+                            </button>
+                        </div>
+                        <div class="controls-reading" id="controlsReading" style="display: none;">
+                            <p class="reading-hint">Read the question, then click Continue when ready</p>
+                            <button class="btn-continue-recording" onclick="continueRecording()">
+                                Continue Recording
+                            </button>
+                        </div>
+                        <div class="controls-recording" id="controlsRecording" style="display: none;">
+                            <button class="btn-next-question" onclick="goToNextQuestion()">
+                                Next Part →
+                            </button>
+                        </div>
+                        <div class="controls-after" id="controlsAfter" style="display: none;">
+                            <button class="btn-continue-minimal" onclick="submitAssessment()">
+                                Analyze My Personality
+                            </button>
+                            <button class="btn-redo-minimal" onclick="restartAssessment()">
+                                Start Over
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>Preview</h3>
+                <div class="preview-container">
+                    <img id="imagePreview" alt="Preview" style="display: none;">
+                    <video id="videoPreview" controls style="display: none;"></video>
+                </div>
+                <div class="preview-actions">
+                    <button class="btn-secondary" onclick="resetUpload()">Change File</button>
+                    <button class="btn-primary" onclick="analyzePerson()" id="analyzeBtn">
+                        Analyze Personality
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State with Progress -->
+        <div class="loading-section" id="loadingSection" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-icon">
+                    <div class="spinner"></div>
+                </div>
+                <h3 class="loading-title" id="loadingTitle">Analyzing Your Personality</h3>
+                <p class="loading-message" id="loadingMessage">Preparing analysis...</p>
+
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span class="progress-stage" id="progressStage">Starting...</span>
+                        <span class="progress-percent" id="progressPercent">0%</span>
+                    </div>
+                </div>
+
+                <!-- Stage indicators -->
+                <div class="progress-stages">
+                    <div class="stage-item" id="stageUpload" data-stage="uploading">
+                        <span class="stage-dot"></span>
+                        <span class="stage-label">Upload</span>
+                    </div>
+                    <div class="stage-item" id="stageFrames" data-stage="extracting_frames">
+                        <span class="stage-dot"></span>
+                        <span class="stage-label">Extract</span>
+                    </div>
+                    <div class="stage-item" id="stageTranscribe" data-stage="transcribing">
+                        <span class="stage-dot"></span>
+                        <span class="stage-label">Transcribe</span>
+                    </div>
+                    <div class="stage-item" id="stageAnalyze" data-stage="analyzing_video">
+                        <span class="stage-dot"></span>
+                        <span class="stage-label">Analyze</span>
+                    </div>
+                    <div class="stage-item" id="stageReport" data-stage="generating_report">
+                        <span class="stage-dot"></span>
+                        <span class="stage-label">Generate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <section class="results-section" id="resultsSection" style="display: none;">
+
+            <!-- Navigation Tabs - Vercel Style -->
+            <div class="results-nav-wrapper">
+                <nav class="results-nav" id="resultsNav">
+                    <!-- Hover highlight (follows mouse) -->
+                    <div class="nav-hover-highlight" id="navHoverHighlight"></div>
+                    <!-- Active indicator (slides between active tabs) -->
+                    <div class="nav-active-indicator" id="navActiveIndicator"></div>
+
+                    <a href="#big5Section" class="results-nav-item active" data-section="big5Section">Big 5 score</a>
+                    <a href="#uniqueStorySection" class="results-nav-item" data-section="uniqueStorySection">Unique story</a>
+                    <a href="#relationshipsSection" class="results-nav-item" data-section="relationshipsSection">Relationship & empathy</a>
+                    <a href="#workSection" class="results-nav-item" data-section="workSection">Focus & execution style</a>
+                    <a href="#creativitySection" class="results-nav-item" data-section="creativitySection">Ideation & creative energy</a>
+                    <a href="#stressSection" class="results-nav-item" data-section="stressSection">Pressure response & recovery</a>
+                    <a href="#opennessSection" class="results-nav-item" data-section="opennessSection">Openness to experience</a>
+                    <a href="#learningSection" class="results-nav-item" data-section="learningSection">Learning & growth</a>
+                    <a href="#voiceSection" class="results-nav-item" data-section="voiceSection">Voice & communication</a>
+                    <a href="#similaritySection" class="results-nav-item" data-section="similaritySection">Similarity to famous</a>
+                </nav>
+            </div>
+
+            <!-- Debug Visualization Panel (Top) -->
+            <div class="debug-panel" id="debugPanel" style="display: none;">
+                <div class="debug-header">
+                    <h3>Analysis Debug View</h3>
+                    <button class="debug-toggle-btn" id="debugToggleBtn" onclick="toggleDebugPanel()">Hide</button>
+                </div>
+
+                <!-- Extracted Frames with Face Detection -->
+                <div class="debug-section">
+                    <h4>Extracted Frames & Face Detection</h4>
+                    <div class="debug-frames-grid" id="debugFramesGrid">
+                        <!-- Frames will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Transcript -->
+                <div class="debug-section">
+                    <h4>Transcribed Text</h4>
+                    <div class="debug-transcript" id="debugTranscript">
+                        <p class="transcript-text"></p>
+                        <span class="transcript-length"></span>
+                    </div>
+                </div>
+
+                <!-- Audio Waveform -->
+                <div class="debug-section">
+                    <h4>Audio Waveform</h4>
+                    <div class="debug-waveform" id="debugWaveform">
+                        <canvas id="waveformCanvas"></canvas>
+                        <span class="waveform-duration"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Big 5 Personality Score Section -->
+            <div id="big5Section" class="results-content-section">
+            <h1 class="results-main-title">Big 5 personality score</h1>
+
+            <!-- Personality Insights Card (Top Section) - Wireframe Style -->
+            <div class="insights-card-new" id="insightsCard">
+                <div class="insights-profile-section">
+                    <img id="insightsPhoto" alt="Profile photo" class="insights-photo-new" />
+                    <video id="insightsVideo" class="insights-photo-new" controls style="display: none;"></video>
+                    <div class="insights-text-content">
+                        <h2 class="insights-title-new" id="insightsTitle">Visionary Pathfinder</h2>
+                        <p class="insights-description-new" id="insightsDescription">
+                            Your facial cues suggest a natural openness and curiosity, often seen in individuals who enjoy exploring new ideas and connecting with others.
+                        </p>
+                    </div>
+                </div>
+                <div class="insights-scores-section">
+                    <div class="circular-scores" id="circularScores">
+                        <!-- Circular score badges will be inserted here by JS -->
+                    </div>
+                    <button class="btn-share-header" id="shareHeaderBtn" onclick="shareResults()">
+                        <span>Share</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scores Section - Radar + Accordion -->
+            <div class="scores-section-new">
+                <!-- Radar Chart (Left) -->
+                <div class="radar-container-new">
+                    <canvas id="radarChart"></canvas>
+                    <button class="btn-share-radar" onclick="shareRadarResults()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                        <span>Share</span>
+                    </button>
+                </div>
+
+                <!-- Trait Accordion (Right) -->
+                <div class="trait-accordion" id="traitAccordion">
+                    <!-- Accordion items will be inserted here by JS -->
+                </div>
+            </div>
+
+            <!-- Shareable Section -->
+            <div class="shareable-section">
+                <!-- Tabs -->
+                <div class="shareable-tabs">
+                    <button class="shareable-tab active" data-tab="worth-sharing" onclick="switchShareableTab('worth-sharing')">Worth sharing</button>
+                    <button class="shareable-tab" data-tab="strengths" onclick="switchShareableTab('strengths')">Strengths</button>
+                    <button class="shareable-tab" data-tab="growth" onclick="switchShareableTab('growth')">Areas for growth</button>
+                </div>
+
+                <!-- Carousel Container -->
+                <div class="shareable-carousel">
+                    <button class="carousel-arrow carousel-prev" onclick="prevShareableCard()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+
+                    <!-- Shareable Cards -->
+                <div class="shareable-cards" id="shareableCards">
+                    <!-- Card 1: Summary Card with Full Background Image -->
+                    <div class="share-card share-card-image-bg" id="shareCard1">
+                        <div class="share-card-actions">
+                            <button class="share-btn" title="Download"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></button>
+                            <button class="share-btn" title="Share"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                        </div>
+                        <div class="share-card-content">
+                            <h3 class="share-card-title" id="shareCardTitle1">Visionary Pathfinder</h3>
+                            <p class="share-card-tags" id="shareCardTags1">Empathetic • Calm • Emotionally Aware</p>
+                            <div class="share-card-scores" id="shareCardScores1">
+                                <!-- Mini scores will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Radar Card (Light) -->
+                    <div class="share-card share-card-light" id="shareCard2">
+                        <div class="share-card-actions">
+                            <button class="share-btn share-btn-dark" title="Download"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></button>
+                            <button class="share-btn share-btn-dark" title="Share"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                        </div>
+                        <img id="shareCardPhoto2" class="share-card-avatar" alt="Profile" />
+                        <h3 class="share-card-title share-card-title-dark" id="shareCardTitle2">Visionary Pathfinder</h3>
+                        <p class="share-card-tags share-card-tags-dark" id="shareCardTags2">Empathetic • Calm • Emotionally Aware</p>
+                        <div class="share-card-radar">
+                            <canvas id="shareRadarChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Comparison Card with Full Background Image -->
+                    <div class="share-card share-card-dark-bg" id="shareCard3">
+                        <div class="share-card-actions">
+                            <button class="share-btn" title="Download"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></button>
+                            <button class="share-btn" title="Share"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
+                        </div>
+                        <div class="share-card-content">
+                            <div class="share-card-comparison">
+                                <div class="comparison-badge" id="comparisonBadge">
+                                    <span class="comparison-score" id="comparisonScore">85%</span>
+                                </div>
+                            </div>
+                            <p class="share-card-comparison-text">
+                                <span id="comparisonText">Your top trait is</span>
+                            </p>
+                            <h3 class="share-card-highlight" id="comparisonHighlight">Openness to Experience</h3>
+                        </div>
+                    </div>
+                </div>
+
+                    <button class="carousel-arrow carousel-next" onclick="nextShareableCard()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Carousel Dots -->
+                <div class="carousel-dots">
+                    <button class="carousel-dot active" onclick="goToShareableCard(0)"></button>
+                    <button class="carousel-dot" onclick="goToShareableCard(1)"></button>
+                    <button class="carousel-dot" onclick="goToShareableCard(2)"></button>
+                </div>
+            </div>
+
+            </div><!-- End of Big 5 Section -->
+
+            <!-- Unique Story Section -->
+            <div id="uniqueStorySection" class="results-content-section">
+            <!-- Personality Story Section - Wireframe Style -->
+            <div class="personality-story-section-new" id="personalityStorySection">
+                <h2 class="personality-story-title-new">Your unique personality story</h2>
+                <div class="personality-story-card-new">
+                    <!-- Left Column: Quote + Narrative -->
+                    <div class="story-left-column">
+                        <div class="story-quote-block">
+                            <span class="story-quote-icon">💕</span>
+                            <blockquote class="story-quote-new" id="storyQuote">
+                                A heart that listens and eyes that roam, curious, kind, and ever at home.
+                            </blockquote>
+                        </div>
+                        <div class="story-narrative-new" id="storyNarrative">
+                            <p>Based on the intricate patterns and subtle cues captured from your photos, your personality tells a story of vibrant curiosity and genuine connection.</p>
+                        </div>
+                    </div>
+                    <!-- Right Column: You are + Room for improvement -->
+                    <div class="story-right-column">
+                        <div class="story-you-are-section">
+                            <h3 class="story-section-label">You are:</h3>
+                            <div class="story-traits-grid-new" id="storyTraitsGrid">
+                                <!-- Trait tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                        <div class="story-improvement-section">
+                            <h3 class="story-section-label">Room for improvement:</h3>
+                            <div class="story-improvement-grid" id="storyImprovementGrid">
+                                <!-- Improvement tips will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Share Button -->
+                    <button class="btn-share-story" onclick="sharePersonalityStory()">
+                        <span>Share</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            </div><!-- End of Unique Story Section -->
+
+            <!-- Openness to Experience Section -->
+            <div class="section-wrapper" id="opennessSection" style="display: none;">
+                <h2 class="section-title-new">Openness to experience</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Openness Score with "Ahead of your age group" -->
+                        <div class="big-score-container" id="opennessBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">78%</span>
+                            </div>
+                            <span class="big-score-subtext">Ahead of your age group in openness</span>
+                        </div>
+
+                        <!-- Score breakdown label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges -->
+                        <div class="section-gauges" id="opennessGauges">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Experiences you enjoy most -->
+                        <div class="suitable-for-section">
+                            <h4 class="suitable-for-label">Experiences you enjoy most</h4>
+                            <div class="suitable-for-tags" id="opennessSuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion Sections -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="opennessAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Learning & Growth Section -->
+            <div class="section-wrapper" id="learningSection" style="display: none;">
+                <h2 class="section-title-new">Learning & growth</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Intellectual Curiosity Score -->
+                        <div class="big-score-container" id="learningBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">78%</span>
+                            </div>
+                            <span class="big-score-subtext">Ahead of your age group in learning</span>
+                        </div>
+
+                        <!-- Score breakdown label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges -->
+                        <div class="section-gauges" id="learningGauges">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Learning styles that fit you -->
+                        <div class="suitable-for-section">
+                            <h4 class="suitable-for-label">Learning styles that fit you</h4>
+                            <div class="suitable-for-tags" id="learningSuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion Sections -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="learningAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Relationships & Empathy Section - New Wireframe -->
+            <div class="section-wrapper" id="relationshipsSection" style="display: none;">
+                <h2 class="section-title-new">Relationship & empathy</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Empathy Score -->
+                        <div class="big-score-container" id="relBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">90%</span>
+                            </div>
+                            <span class="big-score-subtext">Ahead of your age group in empathy</span>
+                        </div>
+
+                        <!-- Score Breakdown Label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges -->
+                        <div class="section-gauges" id="relationshipGauges">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Suitable For Tags -->
+                        <div class="suitable-for-section">
+                            <h4 class="suitable-for-label">Suitable for</h4>
+                            <div class="suitable-for-tags" id="relSuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion Sections -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="relationshipAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Work DNA & Focus Section - New Wireframe -->
+            <div class="section-wrapper" id="workSection" style="display: none;">
+                <h2 class="section-title-new">Work DNA & focus</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Focus Score -->
+                        <div class="big-score-container" id="workBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">78%</span>
+                            </div>
+                            <span class="big-score-subtext">Ahead of your age group in focus</span>
+                        </div>
+
+                        <!-- Score Breakdown Label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges -->
+                        <div class="section-gauges" id="workGauges">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Suitable For Tags -->
+                        <div class="suitable-for-section">
+                            <h4 class="suitable-for-label">Jobs that suit you</h4>
+                            <div class="suitable-for-tags" id="workSuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion Sections -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="workAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Creativity Pulse Section - New Wireframe -->
+            <div class="section-wrapper" id="creativitySection" style="display: none;">
+                <h2 class="section-title-new">Creativity & innovation</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Creativity Score -->
+                        <div class="big-score-container" id="creativityBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">72%</span>
+                            </div>
+                            <span class="big-score-subtext">Ahead of your age group in creativity</span>
+                        </div>
+
+                        <!-- Score Breakdown Label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges -->
+                        <div class="section-gauges" id="creativityGauges">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Suitable For Tags -->
+                        <div class="suitable-for-section">
+                            <h4 class="suitable-for-label">Suitable for</h4>
+                            <div class="suitable-for-tags" id="creativitySuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion Sections -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="creativityAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Stress & Resilience Section - New Wireframe -->
+            <div class="section-wrapper" id="stressSection" style="display: none;">
+                <h2 class="section-title-new">Stress & resilience</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Resilience Score -->
+                        <div class="big-score-container" id="stressBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">68%</span>
+                            </div>
+                            <span class="big-score-subtext">Ahead of your age group in resilience</span>
+                        </div>
+
+                        <!-- Score Breakdown Label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges -->
+                        <div class="section-gauges" id="stressGauges">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Suitable For Tags -->
+                        <div class="suitable-for-section">
+                            <h4 class="suitable-for-label">Suitable for</h4>
+                            <div class="suitable-for-tags" id="stressSuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion Sections -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="stressAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Voice & Communication Section -->
+            <div class="section-wrapper" id="audioSection" style="display: none;">
+                <h2 class="section-title-new">Voice & Communication</h2>
+                <div class="section-card-new">
+                <div class="section-grid-new">
+                    <!-- Left Column: Big Score + Gauges + Suitable For -->
+                    <div class="section-left-new">
+                        <!-- Big Voice Score -->
+                        <div class="big-score-container" id="voiceBigScore">
+                            <div class="big-score-display">
+                                <span class="big-score-arrow">▲</span>
+                                <span class="big-score-value">75%</span>
+                            </div>
+                            <span class="big-score-subtext">Vocal communication score</span>
+                        </div>
+
+                        <!-- Score breakdown label -->
+                        <div class="score-breakdown-pill">Score breakdown</div>
+
+                        <!-- Circular Gauges for voice metrics -->
+                        <div class="section-gauges" id="voiceGaugesGrid">
+                            <!-- Gauges will be inserted here by JavaScript -->
+                        </div>
+
+                        <!-- Suitable For -->
+                        <div class="suitable-for-section">
+                            <p class="suitable-for-label">Communication contexts</p>
+                            <div class="suitable-for-tags" id="voiceSuitableForTags">
+                                <!-- Tags will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Accordion -->
+                    <div class="section-right-new">
+                        <div class="section-accordion" id="voiceAccordion">
+                            <!-- Accordion items will be inserted here by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Personalities You Might Relate To Section -->
+            <div class="section-wrapper" id="similaritySection" style="display: none;">
+                <h2 class="section-title-new">Personalities you might relate to</h2>
+                <div class="similarity-section-content">
+                    <!-- Personality Cards Container -->
+                    <div class="similarity-cards-container">
+                        <!-- Card 1 -->
+                        <div class="similarity-card">
+                            <div class="similarity-card-header">
+                                <span class="similarity-name">Keanu Reeves</span>
+                            </div>
+                            <div class="similarity-card-image">
+                                <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop&crop=face" alt="Personality 1">
+                                <div class="similarity-score-overlay">
+                                    <div class="similarity-gauge">
+                                        <svg viewBox="0 0 100 100" class="similarity-gauge-svg">
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="6"/>
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="6"
+                                                stroke-dasharray="264" stroke-dashoffset="48"
+                                                stroke-linecap="round" transform="rotate(-90 50 50)"/>
+                                        </svg>
+                                        <div class="similarity-gauge-content">
+                                            <span class="similarity-percentage">82%</span>
+                                            <span class="similarity-trait">Agreeableness</span>
+                                            <span class="similarity-level high">High</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 -->
+                        <div class="similarity-card">
+                            <div class="similarity-card-header">
+                                <span class="similarity-name">Rowan Atkinson</span>
+                            </div>
+                            <div class="similarity-card-image">
+                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop&crop=face" alt="Personality 2">
+                                <div class="similarity-score-overlay">
+                                    <div class="similarity-gauge">
+                                        <svg viewBox="0 0 100 100" class="similarity-gauge-svg">
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="6"/>
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="6"
+                                                stroke-dasharray="264" stroke-dashoffset="48"
+                                                stroke-linecap="round" transform="rotate(-90 50 50)"/>
+                                        </svg>
+                                        <div class="similarity-gauge-content">
+                                            <span class="similarity-percentage">82%</span>
+                                            <span class="similarity-trait">Agreeableness</span>
+                                            <span class="similarity-level high">High</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 -->
+                        <div class="similarity-card">
+                            <div class="similarity-card-header">
+                                <span class="similarity-name">Chris Rock</span>
+                            </div>
+                            <div class="similarity-card-image">
+                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop&crop=face" alt="Personality 3">
+                                <div class="similarity-score-overlay">
+                                    <div class="similarity-gauge">
+                                        <svg viewBox="0 0 100 100" class="similarity-gauge-svg">
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="6"/>
+                                            <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="6"
+                                                stroke-dasharray="264" stroke-dashoffset="48"
+                                                stroke-linecap="round" transform="rotate(-90 50 50)"/>
+                                        </svg>
+                                        <div class="similarity-gauge-content">
+                                            <span class="similarity-percentage">82%</span>
+                                            <span class="similarity-trait">Agreeableness</span>
+                                            <span class="similarity-level high">High</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Arrows -->
+                    <div class="similarity-nav">
+                        <button class="similarity-nav-btn" id="similarityPrev" aria-label="Previous">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <button class="similarity-nav-btn" id="similarityNext" aria-label="Next">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="result-actions">
+                <button class="btn-secondary" onclick="resetUpload()">Analyze Another</button>
+                <button class="btn-primary" onclick="downloadResults()">Download Report</button>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <!-- Footer Grid -->
+            <div class="footer-grid">
+                <!-- Brand Column -->
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <span class="logo-text">Firasa<span class="logo-dot">.ai</span></span>
+                    </div>
+                    <p class="footer-tagline">AI-powered personality insights for better hiring, team building, and self-discovery.</p>
+
+                    <!-- Compliance Badges -->
+                    <div class="footer-badges">
+                        <div class="compliance-badge">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="M9 12l2 2 4-4"/>
+                            </svg>
+                            <span>SOC2 Compliant</span>
+                        </div>
+                        <div class="compliance-badge">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4"/>
+                            </svg>
+                            <span>HIPAA Ready</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Column -->
+                <div class="footer-column">
+                    <h4 class="footer-heading">Product</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Video Analysis</a></li>
+                        <li><a href="#">Real-time Scoring</a></li>
+                        <li><a href="#">Team Insights</a></li>
+                        <li><a href="#">API Access</a></li>
+                        <li><a href="#">Integrations</a></li>
+                    </ul>
+                </div>
+
+                <!-- Company Column -->
+                <div class="footer-column">
+                    <h4 class="footer-heading">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Press</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Resources Column -->
+                <div class="footer-column">
+                    <h4 class="footer-heading">Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Security</a></li>
+                    </ul>
+                </div>
+
+                <!-- Newsletter Column -->
+                <div class="footer-column footer-newsletter">
+                    <h4 class="footer-heading">Stay Updated</h4>
+                    <p class="newsletter-text">Get the latest updates on personality science and AI.</p>
+                    <form class="newsletter-form" onsubmit="event.preventDefault(); subscribeNewsletter();">
+                        <input type="email" placeholder="Enter your email" class="newsletter-input" required>
+                        <button type="submit" class="newsletter-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <div class="footer-copyright">
+                    <p>&copy; 2025 Firasa.ai. All rights reserved.</p>
+                </div>
+                <div class="footer-social">
+                    <a href="#" class="social-link" aria-label="Twitter">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-link" aria-label="LinkedIn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-link" aria-label="GitHub">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="social-link" aria-label="YouTube">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Large Flickering Brand Text -->
+        <div class="footer-brand-large">
+            <div class="flickering-text" aria-hidden="true">
+                <span data-char="f">f</span><span data-char="i">i</span><span data-char="r">r</span><span data-char="a">a</span><span data-char="s">s</span><span data-char="a">a</span><span class="dot-char" data-char=".">.</span><span data-char="a">a</span><span data-char="i">i</span>
+            </div>
+        </div>
+
+        <!-- Flickering Grid Effect -->
+        <div class="footer-grid-effect"></div>
+    </footer>
+
+    <!-- AI Chat Assistant -->
+    <div class="ai-assistant-container" id="aiAssistant">
+        <!-- Floating Button -->
+        <button class="ai-floating-btn" id="aiFloatingBtn" aria-label="Open AI Assistant">
+            <div class="ai-btn-pulse"></div>
+            <!-- Bot Icon -->
+            <svg class="ai-icon-bot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 8V4H8"></path>
+                <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                <path d="M2 14h2"></path>
+                <path d="M20 14h2"></path>
+                <path d="M15 13v2"></path>
+                <path d="M9 13v2"></path>
+            </svg>
+            <!-- Close Icon (hidden by default) -->
+            <svg class="ai-icon-close" style="display:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"></path>
+                <path d="m6 6 12 12"></path>
+            </svg>
+        </button>
+
+        <!-- Chat Window -->
+        <div class="ai-chat-window" id="aiChatWindow">
+            <div class="ai-chat-overlay"></div>
+
+            <!-- Header -->
+            <div class="ai-chat-header">
+                <div class="ai-chat-status">
+                    <div class="ai-status-dot"></div>
+                    <span>Firasa Assistant</span>
+                </div>
+                <div class="ai-chat-badges">
+                    <span class="ai-badge ai-badge-pro">Pro</span>
+                    <button class="ai-chat-close" id="aiChatClose" aria-label="Close chat">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18"></path>
+                            <path d="m6 6 12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages (for future use) -->
+            <div class="ai-chat-messages" id="aiChatMessages"></div>
+
+            <!-- Input Area -->
+            <div class="ai-chat-input-area">
+                <textarea
+                    class="ai-chat-textarea"
+                    id="aiChatInput"
+                    placeholder="Ask anything about your personality results, request insights, or explore your traits..."
+                    rows="4"
+                ></textarea>
+            </div>
+
+            <!-- Controls -->
+            <div class="ai-chat-controls">
+                <div class="ai-control-group">
+                    <div class="ai-attachment-group">
+                        <button class="ai-control-btn" title="Upload file">
+                            <span class="ai-tooltip">Upload files</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                            </svg>
+                        </button>
+                        <button class="ai-control-btn" title="Add link">
+                            <span class="ai-tooltip">Web link</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                            </svg>
+                        </button>
+                        <button class="ai-control-btn" title="Code snippet">
+                            <span class="ai-tooltip">Code snippet</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="16 18 22 12 16 6"></polyline>
+                                <polyline points="8 6 2 12 8 18"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="ai-control-btn voice-btn" title="Voice input">
+                        <span class="ai-tooltip">Voice input</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" x2="12" y1="19" y2="22"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="ai-right-controls">
+                    <div class="ai-char-count">
+                        <span class="current" id="aiCharCount">0</span>/<span>2000</span>
+                    </div>
+                    <button class="ai-send-btn" id="aiSendBtn" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m22 2-7 20-4-9-9-4Z"></path>
+                            <path d="M22 2 11 13"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="ai-chat-footer">
+                <div class="ai-footer-hint">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                    <span>Press <kbd>Shift + Enter</kbd> for new line</span>
+                </div>
+                <div class="ai-footer-status">
+                    <span class="dot"></span>
+                    <span>All systems operational</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=85"></script>
+</body>
+</html>

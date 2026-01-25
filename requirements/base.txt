@@ -1,0 +1,35 @@
+# Core dependencies for OCEAN Personality API
+
+# Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Computer Vision
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# FastAPI and Web
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+python-json-logger>=2.0.7
+
+# Optional: Redis cache
+redis>=5.0.0
+
+# Optional: AWS S3 storage
+boto3>=1.28.0
+
+# Optional: Database
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0
+
+# Optional: Monitoring
+# sentry-sdk>=1.38.0
+# prometheus-client>=0.19.0

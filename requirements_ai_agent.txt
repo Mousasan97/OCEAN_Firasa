@@ -1,0 +1,29 @@
+# AI Agent dependencies for personality report generation
+# Add these to your main requirements.txt or install separately
+
+# Pydantic AI - Provider-agnostic LLM framework
+pydantic-ai>=0.0.30
+
+# Provider-specific extras (install based on your AI_PROVIDER setting):
+# For OpenAI: pip install "pydantic-ai-slim[openai]"
+# For Vertex AI (Gemma): pip install "pydantic-ai-slim[vertexai]"
+# For Anthropic: pip install "pydantic-ai-slim[anthropic]"
+
+# OpenAI SDK (for OpenAI provider)
+openai>=1.0.0
+
+# Google GenAI SDK (for Gemma models via Gemini API - direct SDK access)
+google-genai>=1.0.0
+
+# Google Cloud AI Platform (for Vertex AI provider with Gemini models)
+google-cloud-aiplatform>=1.38.0
+
+# For percentile calculations (if not already installed)
+scipy>=1.10.0
+
+# For multimodal video analysis (audio extraction, frame extraction)
+moviepy>=2.0.0
+pillow>=10.0.0
+
+# For audio analysis (acoustic feature extraction for personality insights)
+librosa>=0.10.0

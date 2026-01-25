@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Model checkpoints and data (except production model)
+# output/  # Commented to include model for deployment
+*.ckpt
+*.h5
+# Keep the production model
+!output/single_img_resnet18/best.pt
+
+# Uploads and processed files
+uploads/
+processed/
+temp/
+
+# Cache
+.cache/
+*.cache
+__pycache__/
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Credentials and secrets
+*.json
+!package.json
+alpinvision-*.json
+
+# Test files and media
+*.mp4
+*.mp3
+extracted_frames/
+extracted_audio*
+test*.py
+quick_test.py
+nul
+
+# Video model (large, use external storage if needed)
+video_model/
