@@ -24,6 +24,7 @@ uvicorn = {extras = ["standard"], version = "^0.24.0"}
 python-multipart = "^0.0.6"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.0"
+sse-starlette = "^2.0.0"
 
 # AI Agent (PydanticAI for personality reports)
 pydantic-ai-slim = "^0.0.30"
