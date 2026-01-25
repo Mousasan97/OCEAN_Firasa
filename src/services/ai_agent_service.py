@@ -490,23 +490,10 @@ class PersonalityCoachService:
         )
 
         try:
-            # Build message history for multi-turn conversation
-            messages = None
-            if message_history:
-                from pydantic_ai import ModelRequest, ModelResponse, UserPromptPart, TextPart
-
-                messages = []
-                for msg in message_history:
-                    if msg['role'] == 'user':
-                        messages.append(ModelRequest(parts=[UserPromptPart(content=msg['content'])]))
-                    else:
-                        messages.append(ModelResponse(parts=[TextPart(content=msg['content'])]))
-
-            # Use run_stream for streaming response
+            # Use run_stream for streaming response (skip message_history for now to debug)
             async with self.agent.run_stream(
                 message,
-                deps=context,
-                message_history=messages
+                deps=context
             ) as result:
                 # Stream text as deltas (incremental chunks)
                 async for chunk in result.stream_text(delta=True):
@@ -516,6 +503,8 @@ class PersonalityCoachService:
 
         except Exception as e:
             logger.error(f"Error in personality coach stream: {e}")
+            import traceback
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
 
 
