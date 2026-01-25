@@ -484,15 +484,13 @@ async def analyze_with_progress(
                     yield f"data: {create_progress_event('analyzing_video', prog, msg)}\n\n"
                     msg_index += 1
                 else:
-                    # Send keep-alive comment to prevent connection timeout
+                    # Send keep-alive as DATA event (not comment) to prevent browser timeout
+                    # Browser fetch only sees data: events, not SSE comments
                     keep_alive_counter += 1
-                    # Alternate between progress updates to show activity
                     progress = min(60 + (keep_alive_counter % 5), 64)
                     logger.info(f"[SSE] Task loop: keep-alive #{keep_alive_counter}")
-                    yield f": keep-alive {keep_alive_counter}\n\n"
-                    # Also send a data event periodically to keep client engaged
-                    if keep_alive_counter % 3 == 0:
-                        yield f"data: {create_progress_event('analyzing_video', progress, 'Processing... please wait')}\n\n"
+                    # ALWAYS send data event - comments don't reach browser reader
+                    yield f"data: {create_progress_event('analyzing_video', progress, 'Processing... please wait')}\n\n"
                 await asyncio.sleep(2)  # Check every 2 seconds
 
             # Get results with exception handling
@@ -621,14 +619,11 @@ async def analyze_with_progress(
             print("[SSE] Starting report generation wait loop", file=sys.stderr, flush=True)
             while not report_task.done():
                 report_keep_alive += 1
-                # Send keep-alive to prevent connection timeout
-                logger.info(f"[SSE] Report keep-alive #{report_keep_alive}")
-                yield f": keep-alive report {report_keep_alive}\n\n"
-                # Send progress update every few iterations
-                if report_keep_alive % 2 == 0:
-                    progress = min(85 + (report_keep_alive // 2), 94)
-                    yield f"data: {create_progress_event('generating_report', progress, 'Generating AI insights...')}\n\n"
-                await asyncio.sleep(3)  # Check every 3 seconds
+                # ALWAYS send data event - comments don't reach browser reader
+                progress = min(85 + (report_keep_alive // 2), 94)
+                logger.info(f"[SSE] Report keep-alive #{report_keep_alive}, progress={progress}")
+                yield f"data: {create_progress_event('generating_report', progress, 'Generating AI insights...')}\n\n"
+                await asyncio.sleep(2)  # Check every 2 seconds (faster for browser)
 
             logger.info("[SSE] Report generation completed")
             print("[SSE] Report generation completed", file=sys.stderr, flush=True)
