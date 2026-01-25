@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "ocean-personality-api"
+version = "1.0.0"
+description = "OCEAN Personality Analysis API with AI-powered insights"
+authors = ["Faraseh Team"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+# Core Deep Learning
+torch = {version = "^2.5.0", source = "pytorch-cpu"}
+torchvision = {version = "^0.20.0", source = "pytorch-cpu"}
+
+# Computer Vision
+opencv-python = "^4.8.0"
+Pillow = "^10.0.0"
+numpy = "^1.24.0"
+
+# FastAPI and Web
+fastapi = "^0.104.0"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+python-multipart = "^0.0.6"
+pydantic = "^2.0.0"
+pydantic-settings = "^2.0.0"
+
+# AI Agent (PydanticAI for personality reports)
+pydantic-ai-slim = "^0.0.30"
+openai = "^1.0.0"
+anthropic = "^0.30.0"
+google-genai = "^1.0.0"
+google-cloud-aiplatform = "^1.38.0"
+
+# Utilities
+python-dotenv = "^1.0.0"
+python-json-logger = "^2.0.7"
+
+# Scientific computing
+scipy = "^1.10.0"
+
+# Video/Audio processing
+moviepy = "^2.0.0"
+librosa = "^0.10.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.21.0"
+
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

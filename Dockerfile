@@ -7,7 +7,9 @@ FROM python:3.10-slim as base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 
 # Install system dependencies (for OpenCV)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,7 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxrender1 \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip install poetry
 
 # Create app directory
 WORKDIR /app
@@ -25,11 +31,11 @@ WORKDIR /app
 # Stage 2: Dependencies
 FROM base as dependencies
 
-# Copy requirements (unified file with exact versions)
-COPY requirements.txt ./
+# Copy poetry files
+COPY pyproject.toml poetry.lock ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies (no dev dependencies)
+RUN poetry install --only main --no-root
 
 # Stage 3: Production
 FROM base as production
