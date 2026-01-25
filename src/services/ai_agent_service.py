@@ -502,9 +502,12 @@ class PersonalityCoachService:
             logger.info(f"Personality coach streamed response to: {message[:50]}...")
 
         except Exception as e:
-            logger.error(f"Error in personality coach stream: {e}")
             import traceback
-            logger.error(f"Full traceback: {traceback.format_exc()}")
+            import sys
+            logger.error(f"Error in personality coach stream: {e}")
+            # Print full traceback to stderr for visibility in Docker logs
+            traceback.print_exc(file=sys.stderr)
+            print(f"CHAT ERROR TRACEBACK:\n{traceback.format_exc()}", file=sys.stderr, flush=True)
             raise
 
 
