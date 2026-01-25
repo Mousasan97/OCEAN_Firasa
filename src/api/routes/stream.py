@@ -333,9 +333,15 @@ async def analyze_with_progress(
     async def generate_progress_events() -> AsyncGenerator[str, None]:
         temp_video_path = None
         compressed_video_path = None
+        import sys
+        import traceback
+
+        logger.info("[SSE] Generator started")
+        print("[SSE] Generator started", file=sys.stderr, flush=True)
 
         try:
             # Stage 1: Uploading (0-5%)
+            logger.info("[SSE] Stage 1: Uploading")
             yield f"data: {create_progress_event('uploading', 0, 'Receiving video...')}\n\n"
 
             # Validate file type
@@ -467,10 +473,14 @@ async def analyze_with_progress(
             msg_index = 0
             keep_alive_counter = 0
 
+            logger.info(f"[SSE] Starting task wait loop with {len(all_tasks)} tasks")
+            print(f"[SSE] Starting task wait loop with {len(all_tasks)} tasks", file=sys.stderr, flush=True)
+
             while not all(t.done() for t in all_tasks):
                 # Send progress update or keep-alive
                 if msg_index < len(progress_messages):
                     prog, msg = progress_messages[msg_index]
+                    logger.info(f"[SSE] Task loop: sending progress {prog}% - {msg}")
                     yield f"data: {create_progress_event('analyzing_video', prog, msg)}\n\n"
                     msg_index += 1
                 else:
@@ -478,6 +488,7 @@ async def analyze_with_progress(
                     keep_alive_counter += 1
                     # Alternate between progress updates to show activity
                     progress = min(60 + (keep_alive_counter % 5), 64)
+                    logger.info(f"[SSE] Task loop: keep-alive #{keep_alive_counter}")
                     yield f": keep-alive {keep_alive_counter}\n\n"
                     # Also send a data event periodically to keep client engaged
                     if keep_alive_counter % 3 == 0:
@@ -505,6 +516,8 @@ async def analyze_with_progress(
                 logger.warning(f"Audio analysis failed: {e}")
                 audio_analysis_result = None
 
+            logger.info("[SSE] Task wait loop completed, all tasks done")
+            print("[SSE] Task wait loop completed, all tasks done", file=sys.stderr, flush=True)
             yield f"data: {create_progress_event('analyzing_video', 65, 'Video analysis complete')}\n\n"
 
             # Use realtime aggregated scores or ResNet result
@@ -580,6 +593,8 @@ async def analyze_with_progress(
                     multimodal_data["metadata"]["transcript_length"] = len(audio_result.get("transcript", ""))
 
             # Stage 7: Generate report (75-95%)
+            logger.info("[SSE] Stage 7: Generate report")
+            print("[SSE] Stage 7: Generate report", file=sys.stderr, flush=True)
             yield f"data: {create_progress_event('generating_report', 80, 'Generating personality insights...')}\n\n"
 
             # Add interpretations and AI report
@@ -602,9 +617,12 @@ async def analyze_with_progress(
             )
 
             report_keep_alive = 0
+            logger.info("[SSE] Starting report generation wait loop")
+            print("[SSE] Starting report generation wait loop", file=sys.stderr, flush=True)
             while not report_task.done():
                 report_keep_alive += 1
                 # Send keep-alive to prevent connection timeout
+                logger.info(f"[SSE] Report keep-alive #{report_keep_alive}")
                 yield f": keep-alive report {report_keep_alive}\n\n"
                 # Send progress update every few iterations
                 if report_keep_alive % 2 == 0:
@@ -612,6 +630,8 @@ async def analyze_with_progress(
                     yield f"data: {create_progress_event('generating_report', progress, 'Generating AI insights...')}\n\n"
                 await asyncio.sleep(3)  # Check every 3 seconds
 
+            logger.info("[SSE] Report generation completed")
+            print("[SSE] Report generation completed", file=sys.stderr, flush=True)
             # Get the result
             result = report_task.result()
 
@@ -647,14 +667,30 @@ async def analyze_with_progress(
             cache_service.set_prediction(content_hash, result, **cache_key_params)
 
             # Stage 8: Complete (100%)
+            logger.info("[SSE] Stage 8: Complete - sending final result")
+            print("[SSE] Stage 8: Complete - sending final result", file=sys.stderr, flush=True)
             yield f"data: {create_progress_event('complete', 100, 'Analysis complete', result)}\n\n"
+            logger.info("[SSE] Final event sent successfully")
+            print("[SSE] Final event sent successfully", file=sys.stderr, flush=True)
 
+        except GeneratorExit:
+            logger.warning("[SSE] Client disconnected (GeneratorExit)")
+            print("[SSE] Client disconnected (GeneratorExit)", file=sys.stderr, flush=True)
+            raise
+        except asyncio.CancelledError:
+            logger.warning("[SSE] Task cancelled (CancelledError)")
+            print("[SSE] Task cancelled (CancelledError)", file=sys.stderr, flush=True)
+            raise
         except Exception as e:
-            logger.error(f"Streaming analysis failed: {e}", exc_info=True)
+            logger.error(f"[SSE] Streaming analysis failed: {e}", exc_info=True)
+            print(f"[SSE] EXCEPTION: {e}", file=sys.stderr, flush=True)
+            traceback.print_exc(file=sys.stderr)
             error_event = create_progress_event('error', -1, str(e))
             yield f"data: {error_event}\n\n"
 
         finally:
+            logger.info("[SSE] Generator cleanup started")
+            print("[SSE] Generator cleanup started", file=sys.stderr, flush=True)
             # Cleanup temp files
             if temp_video_path and os.path.exists(temp_video_path):
                 try:
