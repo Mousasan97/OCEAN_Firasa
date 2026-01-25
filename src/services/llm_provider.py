@@ -12,10 +12,8 @@ from typing import Optional, Type, TypeVar, Any, List
 from pydantic import BaseModel, ValidationError
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.providers.google import GoogleProvider
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.gemini import GeminiModel
 
 from src.utils.logger import get_logger
 from src.utils.config import settings
@@ -96,7 +94,7 @@ class LLMProvider:
         else:
             raise ValueError(f"Unsupported AI provider: {provider}. Supported: openai, vertex, gemini, anthropic")
 
-    def _create_openai_model(self) -> OpenAIChatModel:
+    def _create_openai_model(self) -> OpenAIModel:
         """Create OpenAI model"""
         if not settings.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY not configured")
@@ -104,12 +102,9 @@ class LLMProvider:
         model_name = settings.OPENAI_MODEL
         logger.info(f"Initializing OpenAI model: {model_name}")
 
-        # Create OpenAIProvider with api_key
-        provider = OpenAIProvider(api_key=settings.OPENAI_API_KEY)
+        return OpenAIModel(model_name, api_key=settings.OPENAI_API_KEY)
 
-        return OpenAIChatModel(model_name, provider=provider)
-
-    def _create_vertex_model(self) -> GoogleModel:
+    def _create_vertex_model(self) -> GeminiModel:
         """Create Vertex AI model (Gemini/Gemma via Vertex AI)"""
         if not settings.VERTEX_PROJECT:
             raise ValueError("VERTEX_PROJECT not configured for Vertex AI")
@@ -118,16 +113,14 @@ class LLMProvider:
 
         logger.info(f"Initializing Vertex AI model: {model_name} (project={settings.VERTEX_PROJECT}, location={settings.VERTEX_LOCATION})")
 
-        # Create GoogleProvider with vertexai=True for Vertex AI
-        provider = GoogleProvider(
-            vertexai=True,
-            project=settings.VERTEX_PROJECT,
-            location=settings.VERTEX_LOCATION
+        # Use GeminiModel with project_id for Vertex AI
+        return GeminiModel(
+            model_name,
+            project_id=settings.VERTEX_PROJECT,
+            region=settings.VERTEX_LOCATION
         )
 
-        return GoogleModel(model_name, provider=provider)
-
-    def _create_gemini_model(self) -> GoogleModel:
+    def _create_gemini_model(self) -> GeminiModel:
         """Create Gemini API model (Gemini/Gemma via Google AI Studio API key)"""
         if not settings.GOOGLE_API_KEY:
             raise ValueError("GOOGLE_API_KEY not configured for Gemini API")
@@ -136,12 +129,7 @@ class LLMProvider:
 
         logger.info(f"Initializing Gemini API model: {model_name}")
 
-        # Create GoogleProvider without vertexai flag (uses Gemini API)
-        provider = GoogleProvider(
-            api_key=settings.GOOGLE_API_KEY
-        )
-
-        return GoogleModel(model_name, provider=provider)
+        return GeminiModel(model_name, api_key=settings.GOOGLE_API_KEY)
 
     def _create_anthropic_model(self) -> Model:
         """Create Anthropic model"""

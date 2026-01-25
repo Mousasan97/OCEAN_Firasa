@@ -443,21 +443,6 @@ docs = ["pydoctor (>=25.4.0)"]
 test = ["pytest"]
 
 [[package]]
-name = "eval-type-backport"
-version = "0.3.1"
-description = "Like `typing._eval_type`, but lets older Python versions use newer typing features."
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "eval_type_backport-0.3.1-py3-none-any.whl", hash = "sha256:279ab641905e9f11129f56a8a78f493518515b83402b860f6f06dd7c011fdfa8"},
-    {file = "eval_type_backport-0.3.1.tar.gz", hash = "sha256:57e993f7b5b69d271e37482e62f74e76a0276c82490cf8e4f0dffeb6b332d5ed"},
-]
-
-[package.extras]
-tests = ["pytest"]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -548,6 +533,22 @@ test = ["aiohttp (!=4.0.0a0,!=4.0.0a1)", "numpy", "pytest", "pytest-asyncio (!=0
 test-downstream = ["aiobotocore (>=2.5.4,<3.0.0)", "dask[dataframe,test]", "moto[server] (>4,<5)", "pytest-timeout", "xarray"]
 test-full = ["adlfs", "aiohttp (!=4.0.0a0,!=4.0.0a1)", "backports-zstd ; python_version < \"3.14\"", "cloudpickle", "dask", "distributed", "dropbox", "dropboxdrivefs", "fastparquet", "fusepy", "gcsfs", "jinja2", "kerchunk", "libarchive-c", "lz4", "notebook", "numpy", "ocifs", "pandas", "panel", "paramiko", "pyarrow", "pyarrow (>=1)", "pyftpdlib", "pygit2", "pytest", "pytest-asyncio (!=0.22.0)", "pytest-benchmark", "pytest-cov", "pytest-mock", "pytest-recording", "pytest-rerunfailures", "python-snappy", "requests", "smbprotocol", "tqdm", "urllib3", "zarr"]
 tqdm = ["tqdm"]
+
+[[package]]
+name = "genai-prices"
+version = "0.0.51"
+description = "Calculate prices for calling LLM inference APIs."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "genai_prices-0.0.51-py3-none-any.whl", hash = "sha256:4e0f5892a7ec757d59f343c5dbf9675b0f9e8ed65f4fe26ac7df600e34788ca0"},
+    {file = "genai_prices-0.0.51.tar.gz", hash = "sha256:003da98172641c94d7516b0fd8cec5ecf2dbab64a884996c26cc194c5e0b592e"},
+]
+
+[package.dependencies]
+httpx = ">=0.27"
+pydantic = ">=2.10"
 
 [[package]]
 name = "google-api-core"
@@ -1253,6 +1254,30 @@ files = [
 ]
 
 [[package]]
+name = "importlib-metadata"
+version = "8.7.1"
+description = "Read metadata from Python packages"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "importlib_metadata-8.7.1-py3-none-any.whl", hash = "sha256:5a1f80bf1daa489495071efbb095d75a634cf28a8bc299581244063b53176151"},
+    {file = "importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb"},
+]
+
+[package.dependencies]
+zipp = ">=3.20"
+
+[package.extras]
+check = ["pytest-checkdocs (>=2.4)", "pytest-ruff (>=0.2.1) ; sys_platform != \"cygwin\""]
+cover = ["pytest-cov"]
+doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
+enabler = ["pytest-enabler (>=3.4)"]
+perf = ["ipython"]
+test = ["flufl.flake8", "jaraco.test (>=5.4)", "packaging", "pyfakefs", "pytest (>=6,!=8.1.*)", "pytest-perf (>=0.9.2)"]
+type = ["mypy (<1.19) ; platform_python_implementation == \"PyPy\"", "pytest-mypy (>=1.0.1)"]
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 description = "brain-dead simple config-ini parsing"
@@ -1920,6 +1945,22 @@ numpy = [
 ]
 
 [[package]]
+name = "opentelemetry-api"
+version = "1.39.1"
+description = "OpenTelemetry Python API"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "opentelemetry_api-1.39.1-py3-none-any.whl", hash = "sha256:2edd8463432a7f8443edce90972169b195e7d6a05500cd29e6d13898187c9950"},
+    {file = "opentelemetry_api-1.39.1.tar.gz", hash = "sha256:fbde8c80e1b937a2c61f20347e91c0c18a1940cecf012d62e65a7caf08967c9c"},
+]
+
+[package.dependencies]
+importlib-metadata = ">=6.0,<8.8.0"
+typing-extensions = ">=4.5.0"
+
+[[package]]
 name = "packaging"
 version = "26.0"
 description = "Core utilities for Python packages"
@@ -2201,35 +2242,61 @@ timezone = ["tzdata ; python_version >= \"3.9\" and platform_system == \"Windows
 
 [[package]]
 name = "pydantic-ai-slim"
-version = "0.0.30"
+version = "1.47.0"
 description = "Agent Framework / shim to use Pydantic with LLMs, slim package"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pydantic_ai_slim-0.0.30-py3-none-any.whl", hash = "sha256:5637f9c8e7744601684cca9a050f7c7f68885afa63e0e2efd943f52b775e4ddc"},
-    {file = "pydantic_ai_slim-0.0.30.tar.gz", hash = "sha256:6059664dac332020a163fa4930f99695a9843a13bc5a6d8f86b19faea392862e"},
+    {file = "pydantic_ai_slim-1.47.0-py3-none-any.whl", hash = "sha256:b7f5779a83d6fbb6c432bca26578a562e351e1150b5bfd7cfdb06c01a486d0bf"},
+    {file = "pydantic_ai_slim-1.47.0.tar.gz", hash = "sha256:4961cadff4050e47bf67862336a19ab8181be23b3c4cf5fd442423b689127a40"},
 ]
 
 [package.dependencies]
-eval-type-backport = ">=0.2.0"
-exceptiongroup = {version = "*", markers = "python_version < \"3.11\""}
-griffe = ">=1.3.2"
+exceptiongroup = {version = ">=1.2.2", markers = "python_version < \"3.11\""}
+genai-prices = ">=0.0.48"
+griffe = ">=1.14.0"
 httpx = ">=0.27"
-logfire-api = ">=1.2.0"
+opentelemetry-api = ">=1.28.0"
 pydantic = ">=2.10"
-pydantic-graph = "0.0.30"
+pydantic-graph = "1.47.0"
+typing-inspection = ">=0.4.0"
 
 [package.extras]
-anthropic = ["anthropic (>=0.40.0)"]
-cohere = ["cohere (>=5.13.11)"]
-duckduckgo = ["duckduckgo-search (>=7.0.0)"]
-groq = ["groq (>=0.12.0)"]
-logfire = ["logfire (>=2.3)"]
-mistral = ["mistralai (>=1.2.5)"]
-openai = ["openai (>=1.65.1)"]
+a2a = ["fasta2a (>=0.4.1)"]
+ag-ui = ["ag-ui-protocol (>=0.1.10)", "starlette (>=0.45.3)"]
+anthropic = ["anthropic (>=0.75.0)"]
+bedrock = ["boto3 (>=1.42.14)"]
+cli = ["argcomplete (>=3.5.0)", "prompt-toolkit (>=3)", "pyperclip (>=1.9.0)", "rich (>=13)"]
+cohere = ["cohere (>=5.18.0) ; platform_system != \"Emscripten\""]
+dbos = ["dbos (>=1.14.0)"]
+duckduckgo = ["ddgs (>=9.0.0)"]
+evals = ["pydantic-evals (==1.47.0)"]
+exa = ["exa-py (>=2.0.0)"]
+fastmcp = ["fastmcp (>=2.14.0)"]
+google = ["google-genai (>=1.56.0)"]
+groq = ["groq (>=0.25.0)"]
+huggingface = ["huggingface-hub[inference] (>=0.33.5,<1.0.0)"]
+logfire = ["logfire[httpx] (>=4.16.0)"]
+mcp = ["mcp (>=1.25.0)"]
+mistral = ["mistralai (>=1.9.11)"]
+openai = ["openai (>=2.11.0)", "tiktoken (>=0.12.0)"]
+openrouter = ["openai (>=2.8.0)"]
+outlines-llamacpp = ["outlines[llamacpp] (>=1.0.0,<1.3.0)"]
+outlines-mlxlm = ["outlines[mlxlm] (>=1.0.0,<1.3.0) ; platform_system == \"Darwin\" and platform_machine == \"arm64\""]
+outlines-sglang = ["outlines[sglang] (>=1.0.0,<1.3.0)", "pillow (>=11.0.0)"]
+outlines-transformers = ["outlines[transformers] (>=1.0.0,<1.3.0) ; sys_platform != \"darwin\" or platform_machine != \"x86_64\"", "pillow (>=11.0.0)", "torch (>=2.8.0) ; sys_platform != \"darwin\" or platform_machine != \"x86_64\"", "transformers (>=4.0.0)"]
+outlines-vllm-offline = ["outlines (>=1.0.0,<1.3.0)", "torch (>=2.8.0) ; sys_platform != \"darwin\" or platform_machine != \"x86_64\"", "vllm (>=0.11.0) ; python_version < \"3.12\" and (sys_platform != \"darwin\" or platform_machine != \"x86_64\")"]
+prefect = ["prefect (>=3.4.21)"]
+retries = ["tenacity (>=8.2.3)"]
+sentence-transformers = ["sentence-transformers (>=5.2.0)"]
 tavily = ["tavily-python (>=0.5.0)"]
-vertexai = ["google-auth (>=2.36.0)", "requests (>=2.32.3)"]
+temporal = ["temporalio (==1.20.0)"]
+ui = ["starlette (>=0.45.3)"]
+vertexai = ["google-auth (>=2.36.0)", "requests (>=2.32.2)"]
+voyageai = ["voyageai (>=0.3.2)"]
+web = ["httpx (>=0.27.0)", "starlette (>=0.45.3)", "uvicorn (>=0.38.0)"]
+xai = ["xai-sdk (>=1.5.0)"]
 
 [[package]]
 name = "pydantic-core"
@@ -2367,20 +2434,21 @@ typing-extensions = ">=4.14.1"
 
 [[package]]
 name = "pydantic-graph"
-version = "0.0.30"
+version = "1.47.0"
 description = "Graph and state machine library"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pydantic_graph-0.0.30-py3-none-any.whl", hash = "sha256:af224c71ada4c658279cbc2f636d37616d3ecace7322772816155087cf23bf0f"},
-    {file = "pydantic_graph-0.0.30.tar.gz", hash = "sha256:e4494cc6a17da430eddb107e237c5684fa64275ed0c63097854d1a8334d1dab0"},
+    {file = "pydantic_graph-1.47.0-py3-none-any.whl", hash = "sha256:cbd3d60fb057bf4d51e62a6fb1383de560a18847107a843794efbdd5985fb6d1"},
+    {file = "pydantic_graph-1.47.0.tar.gz", hash = "sha256:59c904faba77e92efc0ed140dcabd429c333895ee22ec57f61bdd34a83530613"},
 ]
 
 [package.dependencies]
 httpx = ">=0.27"
-logfire-api = ">=1.2.0"
+logfire-api = ">=3.14.1"
 pydantic = ">=2.10"
+typing-inspection = ">=0.4.0"
 
 [[package]]
 name = "pydantic-settings"
@@ -3750,7 +3818,27 @@ files = [
     {file = "websockets-14.2.tar.gz", hash = "sha256:5059ed9c54945efb321f097084b4c7e52c246f2c869815876a69d1efc4ad6eb5"},
 ]
 
+[[package]]
+name = "zipp"
+version = "3.23.0"
+description = "Backport of pathlib-compatible object wrapper for zip files"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e"},
+    {file = "zipp-3.23.0.tar.gz", hash = "sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166"},
+]
+
+[package.extras]
+check = ["pytest-checkdocs (>=2.4)", "pytest-ruff (>=0.2.1) ; sys_platform != \"cygwin\""]
+cover = ["pytest-cov"]
+doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
+enabler = ["pytest-enabler (>=2.2)"]
+test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more_itertools", "pytest (>=6,!=8.1.*)", "pytest-ignore-flaky"]
+type = ["pytest-mypy"]
+
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "db51b3ff4140fa0105e0bc99e14ba0161e9e2c5ff9488ba345c2116f95cee5e8"
+content-hash = "f507c8159f9df11d5ae95b681fbd6f62470e581c5534ab33277d0c83933913e7"
