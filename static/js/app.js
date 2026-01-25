@@ -1,5 +1,8 @@
 // OCEAN Personality Analysis App
-const API_BASE_URL = 'http://localhost:8001/api/v1';
+// Use relative URL for deployment, or localhost for development
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8001/api/v1'
+    : '/api/v1';
 
 // Recording duration for quick record mode (in seconds)
 const RECORDING_DURATION = 20;
