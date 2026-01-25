@@ -465,14 +465,24 @@ async def analyze_with_progress(
 
             all_tasks = [t for t in [resnet_task, audio_transcribe_task, audio_analysis_task] if t is not None]
             msg_index = 0
+            keep_alive_counter = 0
 
             while not all(t.done() for t in all_tasks):
-                # Send progress update
+                # Send progress update or keep-alive
                 if msg_index < len(progress_messages):
                     prog, msg = progress_messages[msg_index]
                     yield f"data: {create_progress_event('analyzing_video', prog, msg)}\n\n"
                     msg_index += 1
-                await asyncio.sleep(1.5)  # Check every 1.5 seconds
+                else:
+                    # Send keep-alive comment to prevent connection timeout
+                    keep_alive_counter += 1
+                    # Alternate between progress updates to show activity
+                    progress = min(60 + (keep_alive_counter % 5), 64)
+                    yield f": keep-alive {keep_alive_counter}\n\n"
+                    # Also send a data event periodically to keep client engaged
+                    if keep_alive_counter % 3 == 0:
+                        yield f"data: {create_progress_event('analyzing_video', progress, 'Processing... please wait')}\n\n"
+                await asyncio.sleep(2)  # Check every 2 seconds
 
             # Get results with exception handling
             resnet_result = None
@@ -581,12 +591,29 @@ async def analyze_with_progress(
 
             yield f"data: {create_progress_event('generating_report', 85, 'Running AI analysis...')}\n\n"
 
-            result = await prediction_service.add_interpretations_async(
-                result,
-                include_summary=True,
-                generate_report=generate_report,
-                multimodal_data=multimodal_data
+            # Run AI report generation as a task with keep-alive events
+            report_task = asyncio.create_task(
+                prediction_service.add_interpretations_async(
+                    result,
+                    include_summary=True,
+                    generate_report=generate_report,
+                    multimodal_data=multimodal_data
+                )
             )
+
+            report_keep_alive = 0
+            while not report_task.done():
+                report_keep_alive += 1
+                # Send keep-alive to prevent connection timeout
+                yield f": keep-alive report {report_keep_alive}\n\n"
+                # Send progress update every few iterations
+                if report_keep_alive % 2 == 0:
+                    progress = min(85 + (report_keep_alive // 2), 94)
+                    yield f"data: {create_progress_event('generating_report', progress, 'Generating AI insights...')}\n\n"
+                await asyncio.sleep(3)  # Check every 3 seconds
+
+            # Get the result
+            result = report_task.result()
 
             yield f"data: {create_progress_event('generating_report', 95, 'Finalizing results...')}\n\n"
 
