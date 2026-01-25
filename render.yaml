@@ -1,0 +1,58 @@
+# Render Blueprint Configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: ocean-personality-api
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    plan: starter  # starter has 512MB RAM, upgrade to standard (2GB) if needed
+    region: oregon  # or frankfurt, singapore
+    healthCheckPath: /health
+    envVars:
+      # Application
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+
+      # Model Configuration (CPU for cloud deployment)
+      - key: MODEL_DEVICE
+        value: cpu
+      - key: MODEL_TYPE
+        value: resnet
+      - key: MODEL_WARMUP
+        value: true
+
+      # AI Report Generation
+      - key: AI_REPORT_ENABLED
+        value: true
+      - key: AI_PROVIDER
+        value: gemini  # or openai, anthropic
+
+      # API Keys (set these in Render Dashboard > Environment)
+      - key: GOOGLE_API_KEY
+        sync: false  # Set manually in dashboard
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in dashboard (if using OpenAI)
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in dashboard (if using Anthropic)
+
+      # CORS (update with your frontend domain)
+      - key: CORS_ORIGINS
+        value: '["https://your-frontend.onrender.com", "http://localhost:3000"]'
+
+      # Logging
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+
+      # Rate Limiting
+      - key: RATE_LIMIT_ENABLED
+        value: true
+      - key: RATE_LIMIT_REQUESTS
+        value: 100
+      - key: RATE_LIMIT_PERIOD
+        value: 60
