@@ -28,6 +28,7 @@ import tempfile
 import os
 import asyncio
 import json
+from concurrent.futures import ProcessPoolExecutor
 import time
 
 from src.api.schemas.response import PredictionResponse, AssessmentMetadata

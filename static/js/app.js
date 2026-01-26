@@ -356,13 +356,14 @@ async function analyzeWithProgress(formData, options = {}) {
         let timeoutId = null;
         let abortController = null;
 
-        // Reset timeout on each data received - 30 second inactivity timeout
-        const INACTIVITY_TIMEOUT = 30000;
+        // Reset timeout on each data received - 90 second inactivity timeout
+        // Audio analysis with librosa can take 20-40 seconds on CPU-bound servers
+        const INACTIVITY_TIMEOUT = 90000;
 
         const resetTimeout = () => {
             if (timeoutId) clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
-                console.error('SSE inactivity timeout - no data received for 30 seconds');
+                console.error('SSE inactivity timeout - no data received for 90 seconds');
                 if (abortController) abortController.abort();
                 reject(new Error('Connection timeout - please try again'));
             }, INACTIVITY_TIMEOUT);
