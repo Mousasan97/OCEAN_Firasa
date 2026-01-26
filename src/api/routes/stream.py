@@ -491,7 +491,7 @@ async def analyze_with_progress(
                     logger.info(f"[SSE] Task loop: keep-alive #{keep_alive_counter}")
                     # ALWAYS send data event - comments don't reach browser reader
                     yield f"data: {create_progress_event('analyzing_video', progress, 'Processing... please wait')}\n\n"
-                await asyncio.sleep(2)  # Check every 2 seconds
+                await asyncio.sleep(1)  # Check every 1 second for faster keep-alive
 
             # Get results with exception handling
             resnet_result = None
@@ -623,7 +623,7 @@ async def analyze_with_progress(
                 progress = min(85 + (report_keep_alive // 2), 94)
                 logger.info(f"[SSE] Report keep-alive #{report_keep_alive}, progress={progress}")
                 yield f"data: {create_progress_event('generating_report', progress, 'Generating AI insights...')}\n\n"
-                await asyncio.sleep(2)  # Check every 2 seconds (faster for browser)
+                await asyncio.sleep(1)  # Check every 1 second for faster keep-alive
 
             logger.info("[SSE] Report generation completed")
             print("[SSE] Report generation completed", file=sys.stderr, flush=True)

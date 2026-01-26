@@ -353,6 +353,21 @@ function resetProgress() {
  */
 async function analyzeWithProgress(formData, options = {}) {
     return new Promise(async (resolve, reject) => {
+        let timeoutId = null;
+        let abortController = null;
+
+        // Reset timeout on each data received - 30 second inactivity timeout
+        const INACTIVITY_TIMEOUT = 30000;
+
+        const resetTimeout = () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                console.error('SSE inactivity timeout - no data received for 30 seconds');
+                if (abortController) abortController.abort();
+                reject(new Error('Connection timeout - please try again'));
+            }, INACTIVITY_TIMEOUT);
+        };
+
         try {
             // Build query params
             const params = new URLSearchParams({
@@ -361,9 +376,12 @@ async function analyzeWithProgress(formData, options = {}) {
                 generate_report: options.generate_report ?? true
             });
 
+            abortController = new AbortController();
+
             const response = await fetch(`${API_BASE_URL}/stream/analyze?${params}`, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: abortController.signal
             });
 
             if (!response.ok) {
@@ -375,9 +393,15 @@ async function analyzeWithProgress(formData, options = {}) {
             const decoder = new TextDecoder();
             let buffer = '';
 
+            // Start the inactivity timeout
+            resetTimeout();
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+
+                // Reset timeout on each chunk received
+                resetTimeout();
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split('\n');
@@ -393,9 +417,11 @@ async function analyzeWithProgress(formData, options = {}) {
 
                             // Check for completion or error
                             if (data.stage === 'complete' && data.result) {
+                                if (timeoutId) clearTimeout(timeoutId);
                                 resolve(data.result);
                                 return;
                             } else if (data.stage === 'error') {
+                                if (timeoutId) clearTimeout(timeoutId);
                                 reject(new Error(data.message));
                                 return;
                             }
@@ -407,10 +433,17 @@ async function analyzeWithProgress(formData, options = {}) {
             }
 
             // If we get here without a result, something went wrong
+            if (timeoutId) clearTimeout(timeoutId);
             reject(new Error('Stream ended without result'));
 
         } catch (error) {
-            reject(error);
+            if (timeoutId) clearTimeout(timeoutId);
+            // Convert AbortError to a more user-friendly message
+            if (error.name === 'AbortError') {
+                reject(new Error('Analysis was cancelled or timed out'));
+            } else {
+                reject(error);
+            }
         }
     });
 }
