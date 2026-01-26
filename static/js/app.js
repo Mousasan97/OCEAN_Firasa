@@ -2567,10 +2567,10 @@ function displayCurrentQuestion() {
         hintEl.style.display = question.hint ? 'block' : 'none';
     }
 
-    // Update question card gradient
+    // Clear any inline background (use CSS styles instead)
     const questionCard = document.getElementById('questionCard');
     if (questionCard) {
-        questionCard.style.background = question.gradient;
+        questionCard.style.background = '';
     }
 
     // Set time limit for this question
