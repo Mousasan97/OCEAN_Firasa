@@ -48,8 +48,9 @@ logs/
 # output/  # Commented to include model for deployment
 *.ckpt
 *.h5
-# Keep the production model
+# Keep only the production model (best.pt)
 !output/single_img_resnet18/best.pt
+output/single_img_resnet18/last.pt
 
 # Uploads and processed files
 uploads/

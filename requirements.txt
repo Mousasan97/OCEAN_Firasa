@@ -8,7 +8,7 @@ torchvision==0.20.1+cpu
 
 # Computer Vision
 opencv-python==4.11.0.86
-Pillow==11.1.0
+Pillow==10.4.0
 numpy==1.26.4
 
 # FastAPI and Web

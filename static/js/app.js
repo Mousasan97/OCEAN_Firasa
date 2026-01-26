@@ -4711,10 +4711,11 @@ function initAiAssistant() {
                             if (data.type === 'chunk') {
                                 // Append chunk to response
                                 fullResponse += data.content;
-                                streamingEl.textContent = fullResponse;
+                                // Parse markdown in real-time during streaming
+                                streamingEl.innerHTML = parseMarkdown(fullResponse);
                                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
                             } else if (data.type === 'done') {
-                                // Streaming complete - parse markdown
+                                // Streaming complete - final markdown parse
                                 streamingEl.classList.remove('streaming');
                                 streamingEl.innerHTML = parseMarkdown(fullResponse);
                             } else if (data.type === 'error') {
