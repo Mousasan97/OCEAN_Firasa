@@ -352,6 +352,9 @@ body:not(.results-view) .header {
 /* When in record mode, expand the upload section for camera */
 .upload-section.record-mode {
     max-width: 1000px;
+    padding: 1.5rem 1rem 0.5rem;
+    min-height: 100vh;
+    justify-content: flex-start;
 }
 
 /* Record Area - needs more space for camera */
@@ -2559,7 +2562,7 @@ body:not(.results-view) .header {
 .record-area {
     border: 3px dashed var(--border);
     border-radius: 1rem;
-    padding: 1.25rem;
+    padding: 0.75rem;
     background: var(--bg-light);
     transition: all 0.3s ease;
     max-width: 700px;
@@ -2569,7 +2572,7 @@ body:not(.results-view) .header {
 /* Expand record area when assessment container with live panel is active */
 .record-area:has(.assessment-container:not([style*="display: none"])) {
     max-width: 800px;
-    padding: 1rem;
+    padding: 0.5rem;
 }
 
 .record-content {
@@ -4242,14 +4245,14 @@ body:not(.results-view) .header {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    padding: 0.375rem 1rem;
     background: transparent;
     color: var(--text-gray);
     border: none;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     cursor: pointer;
     transition: color 0.2s ease;
-    margin-bottom: 1rem;
+    margin-bottom: 0.25rem;
 }
 
 .btn-back-to-upload:hover {
@@ -4267,7 +4270,7 @@ body:not(.results-view) .header {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: auto;
+    min-height: calc(100vh - 10rem);
     padding: 1.5rem 1.5rem;
     text-align: center;
 }
@@ -4417,8 +4420,8 @@ body:not(.results-view) .header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
     max-width: 950px;
     margin: 0 auto;
 }
@@ -4434,8 +4437,8 @@ body:not(.results-view) .header {
 .camera-with-overlay {
     position: relative;
     width: 100%;
-    min-height: 280px;
-    max-height: 50vh;
+    min-height: 200px;
+    max-height: 48vh;
     aspect-ratio: 16/9;
     border-radius: 0.75rem;
     overflow: hidden;
@@ -4452,11 +4455,11 @@ body:not(.results-view) .header {
 .realtime-bottom-panel {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.375rem;
     width: 100%;
     max-width: 720px;
-    margin: 0.5rem auto 0;
-    padding: 0.75rem;
+    margin: 0.25rem auto 0;
+    padding: 0.5rem 0.75rem;
     background: rgba(30, 41, 59, 0.9);
     backdrop-filter: blur(12px);
     border-radius: 0.75rem;
@@ -4486,13 +4489,13 @@ body:not(.results-view) .header {
 .face-indicator-compact {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.875rem;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
     background: rgba(34, 197, 94, 0.15);
     color: #4ade80;
     border: 1px solid rgba(34, 197, 94, 0.3);
     border-radius: 2rem;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 500;
     white-space: nowrap;
     transition: all 0.3s ease;
@@ -4527,12 +4530,12 @@ body:not(.results-view) .header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.125rem;
-    padding: 0.375rem 0.625rem;
+    gap: 0.0625rem;
+    padding: 0.25rem 0.5rem;
     background: rgba(15, 23, 42, 0.6);
     border-radius: 0.5rem;
     border: 1px solid rgba(148, 163, 184, 0.1);
-    min-width: 44px;
+    min-width: 40px;
 }
 
 .score-pill .score-letter {
@@ -4565,8 +4568,8 @@ body:not(.results-view) .header {
 /* Bottom Panel Chart - Full Width Design */
 .bottom-panel-chart-full {
     width: 100%;
-    height: 80px;
-    padding: 0.375rem;
+    height: 60px;
+    padding: 0.25rem 0.375rem;
     background: rgba(15, 23, 42, 0.4);
     border-radius: 0.5rem;
     border: 1px solid rgba(148, 163, 184, 0.1);
@@ -4577,141 +4580,6 @@ body:not(.results-view) .header {
     height: 100% !important;
 }
 
-/* Frame Debug Panel - Shows processed frames with face detection */
-.frame-debug-panel {
-    width: 100%;
-    max-width: 900px;
-    margin: 1rem auto 0;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(12px);
-    border-radius: 0.75rem;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.frame-debug-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-    color: #94a3b8;
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.debug-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    font-size: 0.75rem;
-}
-
-.debug-toggle input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #3b82f6;
-}
-
-.frame-debug-content {
-    display: flex;
-    gap: 0.75rem;
-    overflow-x: auto;
-    padding: 0.5rem 0;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
-}
-
-.frame-debug-content::-webkit-scrollbar {
-    height: 6px;
-}
-
-.frame-debug-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.frame-debug-content::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
-    border-radius: 3px;
-}
-
-.debug-frame-card {
-    flex-shrink: 0;
-    width: 140px;
-    background: rgba(30, 41, 59, 0.8);
-    border-radius: 0.5rem;
-    overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.1);
-}
-
-.debug-frame-card.no-face {
-    border-color: rgba(239, 68, 68, 0.4);
-}
-
-.debug-frame-card.has-face {
-    border-color: rgba(34, 197, 94, 0.4);
-}
-
-.debug-frame-image {
-    width: 140px;
-    height: 105px;
-    object-fit: cover;
-    display: block;
-    background: #1e293b;
-}
-
-.debug-frame-info {
-    padding: 0.5rem;
-    font-size: 0.65rem;
-    color: #94a3b8;
-}
-
-.debug-frame-info .frame-number {
-    font-weight: 600;
-    color: #e2e8f0;
-    margin-bottom: 0.25rem;
-}
-
-.debug-frame-scores {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 2px;
-    margin-top: 0.25rem;
-}
-
-.debug-frame-scores .score-mini {
-    text-align: center;
-    font-size: 0.6rem;
-}
-
-.debug-frame-scores .score-mini .trait-letter {
-    font-weight: 600;
-    color: #64748b;
-}
-
-.debug-frame-scores .score-mini .trait-value {
-    display: block;
-    font-weight: 500;
-    color: #e2e8f0;
-}
-
-.frame-debug-stats {
-    display: flex;
-    gap: 1.5rem;
-    margin-top: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(148, 163, 184, 0.1);
-    font-size: 0.7rem;
-    color: #64748b;
-}
-
-.frame-debug-stats span {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
 
 /* Responsive: Stack on mobile */
 @media (max-width: 768px) {
@@ -4750,46 +4618,43 @@ body:not(.results-view) .header {
 }
 
 /* Question Overlay - Floating on camera */
-/* Question Overlay - positioned at bottom of video to avoid covering face */
+/* Question Overlay - centered at top of video */
 .question-overlay {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.625rem;
+    gap: 0.4rem;
     z-index: 10;
     pointer-events: none;
-    padding: 0.75rem 1rem;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
 }
 
 /* Progress Badge (1/3) */
 .question-progress {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(8px);
-    color: #fff;
+    color: var(--text-secondary);
     font-size: 0.6875rem;
     font-weight: 700;
     padding: 0.25rem 0.625rem;
     border-radius: 2rem;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    flex-shrink: 0;
-    letter-spacing: 0.02em;
+    border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
-/* Question Card - compact inline style */
+/* Question Card - dark theme consistent */
 .question-card {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(12px);
-    color: #fff;
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(8px);
+    color: var(--text-primary) !important;
     padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    max-width: 420px;
+    border-radius: 0.625rem;
+    max-width: 340px;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .question-card .question-text {
@@ -4797,17 +4662,15 @@ body:not(.results-view) .header {
     font-weight: 500;
     line-height: 1.4;
     margin: 0;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    color: var(--text-primary) !important;
 }
 
 .question-card .question-hint {
     font-size: 0.6875rem;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--accent);
     margin: 0.25rem 0 0 0;
     font-style: italic;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Close Button */
@@ -4879,11 +4742,11 @@ body:not(.results-view) .header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .reading-hint {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-gray);
     margin: 0;
     text-align: center;

@@ -564,11 +564,16 @@ function handleFileSelect(event) {
 }
 
 function handleFile(file) {
-    // Validate file type
+    // Validate file type by MIME type or file extension
     const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/bmp', 'image/webp'];
-    const validVideoTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/mkv'];
+    const validVideoTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.webp', '.mp4', '.avi', '.mov', '.mkv', '.webm'];
 
-    if (!validImageTypes.includes(file.type) && !validVideoTypes.includes(file.type)) {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const typeMatch = validImageTypes.includes(file.type) || validVideoTypes.includes(file.type);
+    const extMatch = validExtensions.includes(ext);
+
+    if (!typeMatch && !extMatch) {
         alert('Please upload a valid image (JPG, PNG) or video (MP4, AVI, MOV) file.');
         return;
     }
@@ -600,25 +605,28 @@ function showPreview(file) {
     // Reset video thumbnail
     videoThumbnail = null;
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        if (file.type.startsWith('image/')) {
-            imagePreview.src = e.target.result;
-            imagePreview.style.display = 'block';
-            videoPreview.style.display = 'none';
-        } else {
-            videoPreview.src = e.target.result;
-            videoPreview.style.display = 'block';
-            imagePreview.style.display = 'none';
+    // Show preview using object URLs (faster and more reliable than data URLs)
+    const objectUrl = URL.createObjectURL(file);
+    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+    const imageExts = ['.jpg', '.jpeg', '.png', '.bmp', '.webp'];
+    const isImage = file.type.startsWith('image/') || imageExts.includes(fileExt);
 
-            // Capture video thumbnail when video is loaded
-            videoPreview.onloadeddata = () => {
-                captureVideoThumbnail(videoPreview);
-            };
-        }
-    };
-    reader.readAsDataURL(file);
+    if (isImage) {
+        imagePreview.src = objectUrl;
+        imagePreview.style.display = 'block';
+        videoPreview.style.display = 'none';
+    } else {
+        videoPreview.src = objectUrl;
+        videoPreview.style.display = 'block';
+        imagePreview.style.display = 'none';
+
+        // Capture video thumbnail when video is loaded
+        videoPreview.onloadeddata = null; // Clear any previous handler
+        videoPreview.addEventListener('loadeddata', function onPreviewLoaded() {
+            videoPreview.removeEventListener('loadeddata', onPreviewLoaded);
+            captureVideoThumbnail(videoPreview);
+        });
+    }
 }
 
 // Capture a frame from video to use as thumbnail in share cards
@@ -633,12 +641,19 @@ function captureVideoThumbnail(video) {
         const seekTime = Math.min(1, video.duration * 0.1);
         video.currentTime = seekTime;
 
-        video.onseeked = () => {
+        // Use a one-time seeked handler to avoid interfering with later playback
+        function onThumbnailSeeked() {
+            video.removeEventListener('seeked', onThumbnailSeeked);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             videoThumbnail = canvas.toDataURL('image/jpeg', 0.8);
-            // Reset video to start
+            // Reset video to start (use another one-time handler to clean up)
+            function onResetSeeked() {
+                video.removeEventListener('seeked', onResetSeeked);
+            }
+            video.addEventListener('seeked', onResetSeeked);
             video.currentTime = 0;
-        };
+        }
+        video.addEventListener('seeked', onThumbnailSeeked);
     } catch (e) {
         console.warn('Could not capture video thumbnail:', e);
     }
@@ -656,20 +671,29 @@ function resetUpload() {
 
     if (uploadCard) uploadCard.style.display = 'block';
     if (videoRequirements) videoRequirements.style.display = 'block';
-    if (uploadPageTitle) uploadPageTitle.style.display = 'block';
+    if (uploadPageTitle) uploadPageTitle.style.display = '';
 
     document.getElementById('previewSection').style.display = 'none';
     document.getElementById('resultsSection').style.display = 'none';
     document.getElementById('loadingSection').style.display = 'none';
     document.getElementById('fileInput').value = '';
 
-    // Clear previews
-    document.getElementById('imagePreview').src = '';
-    document.getElementById('videoPreview').src = '';
+    // Clear previews and revoke object URLs to free memory
+    const imgPreview = document.getElementById('imagePreview');
+    const vidPreview = document.getElementById('videoPreview');
+    if (imgPreview.src && imgPreview.src.startsWith('blob:')) URL.revokeObjectURL(imgPreview.src);
+    if (vidPreview.src && vidPreview.src.startsWith('blob:')) URL.revokeObjectURL(vidPreview.src);
+    // Clear any lingering event handlers before removing src
+    vidPreview.onloadeddata = null;
+    vidPreview.onseeked = null;
+    imgPreview.removeAttribute('src');
+    vidPreview.removeAttribute('src');
 
-    // Clear insights
-    document.getElementById('insightsPhoto').src = '';
-    document.getElementById('insightsVideo').src = '';
+    // Clear insights (use removeAttribute to avoid 404 from empty src)
+    document.getElementById('insightsPhoto').removeAttribute('src');
+    const insVid = document.getElementById('insightsVideo');
+    insVid.removeAttribute('src');
+    insVid.load();
 
     // Destroy chart if exists
     if (radarChart) {
@@ -2492,8 +2516,9 @@ function switchInputMode(mode) {
         if (uploadCard) uploadCard.style.display = 'block';
         if (videoRequirements) videoRequirements.style.display = 'block';
         if (recordArea) recordArea.style.display = 'none';
-        if (uploadPageTitle) uploadPageTitle.style.display = 'block';
+        if (uploadPageTitle) uploadPageTitle.style.display = '';
         if (uploadSection) uploadSection.classList.remove('record-mode');
+        document.body.classList.remove('record-view');
         stopCamera();
         resetAssessment();
     } else if (mode === 'record') {
@@ -2502,6 +2527,7 @@ function switchInputMode(mode) {
         if (recordArea) recordArea.style.display = 'block';
         if (uploadPageTitle) uploadPageTitle.style.display = 'none';
         if (uploadSection) uploadSection.classList.add('record-mode');
+        document.body.classList.add('record-view');
         // Show welcome screen, don't start camera yet
         showAssessmentWelcome();
     }
@@ -3214,10 +3240,12 @@ function showRecordedPreview(blob) {
     // Reset video thumbnail
     videoThumbnail = null;
 
-    // Capture thumbnail
-    videoPreview.onloadeddata = () => {
+    // Capture thumbnail (one-time handler)
+    videoPreview.onloadeddata = null; // Clear any previous handler
+    videoPreview.addEventListener('loadeddata', function onRecordedLoaded() {
+        videoPreview.removeEventListener('loadeddata', onRecordedLoaded);
         captureVideoThumbnail(videoPreview);
-    };
+    });
 }
 
 // Override resetUpload to also reset recording state
@@ -3257,11 +3285,13 @@ resetUpload = function() {
     document.getElementById('loadingSection').style.display = 'none';
     document.getElementById('fileInput').value = '';
 
-    document.getElementById('imagePreview').src = '';
-    document.getElementById('videoPreview').src = '';
+    document.getElementById('imagePreview').removeAttribute('src');
+    document.getElementById('videoPreview').removeAttribute('src');
 
-    document.getElementById('insightsPhoto').src = '';
-    document.getElementById('insightsVideo').src = '';
+    document.getElementById('insightsPhoto').removeAttribute('src');
+    const insightsVid = document.getElementById('insightsVideo');
+    insightsVid.removeAttribute('src');
+    insightsVid.load();
 
     if (radarChart) {
         radarChart.destroy();
@@ -3878,7 +3908,6 @@ class RealtimeScoring {
         console.log(`Debug mode ${enabled ? 'enabled' : 'disabled'}`);
         if (!enabled) {
             this.debugFrames = [];
-            updateDebugFrameDisplay([]);
         }
     }
 
@@ -3891,14 +3920,6 @@ class RealtimeScoring {
         if (this.debugFrames.length > this.maxDebugFrames) {
             this.debugFrames.shift();
         }
-        // Update debug display
-        updateDebugFrameDisplay(this.debugFrames);
-        updateDebugStats(
-            this.totalFramesProcessed,
-            this.lastInferenceTime,
-            this.framesWithFace,
-            this.totalFramesProcessed
-        );
     }
 
     /**
@@ -4332,96 +4353,6 @@ function updateCurrentScoresUI(scores, faceDetected, voiceDetected = false, vide
     updateFaceIndicator(faceDetected);
 }
 
-/**
- * Toggle frame debug mode
- * @param {boolean} enabled - Whether to enable debug mode
- */
-function toggleFrameDebug(enabled) {
-    const panel = document.getElementById('frameDebugPanel');
-    const content = document.getElementById('frameDebugContent');
-
-    if (panel) {
-        panel.style.display = enabled ? 'block' : 'none';
-    }
-
-    if (realtimeScoring) {
-        realtimeScoring.setDebugMode(enabled);
-    }
-
-    if (!enabled && content) {
-        content.innerHTML = '';
-    }
-
-    console.log(`Frame debug ${enabled ? 'enabled' : 'disabled'}`);
-}
-
-/**
- * Update debug frame display with recent frames
- * @param {Array} frames - Array of debug frame objects
- */
-function updateDebugFrameDisplay(frames) {
-    const content = document.getElementById('frameDebugContent');
-    if (!content) return;
-
-    if (frames.length === 0) {
-        content.innerHTML = '<div style="color:#64748b;font-size:0.75rem;padding:1rem;text-align:center;">Enable debug mode to see processed frames</div>';
-        return;
-    }
-
-    content.innerHTML = frames.map(frame => {
-        const scores = frame.scores || {};
-        const faceClass = frame.faceDetected ? 'has-face' : 'no-face';
-        const faceStatus = frame.faceDetected ? 'Face OK' : 'No face';
-
-        // Use face image if available, otherwise show placeholder
-        const imageHtml = frame.faceImage
-            ? `<img class="debug-frame-image" src="${frame.faceImage}" alt="Frame ${frame.frameIndex}">`
-            : `<div class="debug-frame-image" style="display:flex;align-items:center;justify-content:center;color:#64748b;font-size:0.7rem;">No image</div>`;
-
-        return `
-            <div class="debug-frame-card ${faceClass}">
-                ${imageHtml}
-                <div class="debug-frame-info">
-                    <div class="frame-number">Frame #${frame.frameIndex} - ${faceStatus}</div>
-                    <div class="debug-frame-scores">
-                        <div class="score-mini"><span class="trait-letter">O</span><span class="trait-value">${scores.openness?.toFixed(0) || '-'}</span></div>
-                        <div class="score-mini"><span class="trait-letter">C</span><span class="trait-value">${scores.conscientiousness?.toFixed(0) || '-'}</span></div>
-                        <div class="score-mini"><span class="trait-letter">E</span><span class="trait-value">${scores.extraversion?.toFixed(0) || '-'}</span></div>
-                        <div class="score-mini"><span class="trait-letter">A</span><span class="trait-value">${scores.agreeableness?.toFixed(0) || '-'}</span></div>
-                        <div class="score-mini"><span class="trait-letter">N</span><span class="trait-value">${scores.neuroticism?.toFixed(0) || '-'}</span></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Scroll to the right to show latest frame
-    content.scrollLeft = content.scrollWidth;
-}
-
-/**
- * Update debug statistics display
- * @param {number} totalFrames - Total frames processed
- * @param {number} inferenceTime - Last inference time in ms
- * @param {number} framesWithFace - Frames where face was detected
- * @param {number} totalFramesChecked - Total frames checked for face
- */
-function updateDebugStats(totalFrames, inferenceTime, framesWithFace, totalFramesChecked) {
-    const frameCount = document.getElementById('debugFrameCount');
-    const inferenceEl = document.getElementById('debugInferenceTime');
-    const faceRate = document.getElementById('debugFaceRate');
-
-    if (frameCount) {
-        frameCount.textContent = `Frames: ${totalFrames}`;
-    }
-    if (inferenceEl) {
-        inferenceEl.textContent = `Inference: ${inferenceTime.toFixed(0)}ms`;
-    }
-    if (faceRate && totalFramesChecked > 0) {
-        const rate = ((framesWithFace / totalFramesChecked) * 100).toFixed(0);
-        faceRate.textContent = `Face Detection: ${rate}%`;
-    }
-}
 
 /**
  * Update face detection indicator
@@ -4467,11 +4398,6 @@ function showRealtimePanel() {
         updateRealtimeStatus('connecting', 'Connecting...');
     }
 
-    // Also show the debug panel (user can enable/disable with checkbox)
-    const debugPanel = document.getElementById('frameDebugPanel');
-    if (debugPanel) {
-        debugPanel.style.display = 'block';
-    }
 }
 
 /**
@@ -4481,18 +4407,6 @@ function hideRealtimePanel() {
     const panel = document.getElementById('realtimePanel');
     if (panel) {
         panel.style.display = 'none';
-    }
-
-    // Hide debug panel
-    const debugPanel = document.getElementById('frameDebugPanel');
-    if (debugPanel) {
-        debugPanel.style.display = 'none';
-    }
-
-    // Reset debug toggle checkbox
-    const debugToggle = document.getElementById('frameDebugToggle');
-    if (debugToggle) {
-        debugToggle.checked = false;
     }
 
     // Destroy chart to free memory
