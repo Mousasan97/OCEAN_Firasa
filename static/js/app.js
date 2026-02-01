@@ -278,6 +278,9 @@ function updateShareableCarousel() {
     if (carouselDots) carouselDots.style.display = 'none';
 }
 
+// Track current progress to prevent backwards movement
+let currentProgress = 0;
+
 /**
  * Update progress UI with stage and percentage
  */
@@ -286,6 +289,12 @@ function updateProgress(stage, progress, message) {
     const progressPercent = document.getElementById('progressPercent');
     const progressStage = document.getElementById('progressStage');
     const loadingMessage = document.getElementById('loadingMessage');
+
+    // Only allow progress to move forward (prevent flickering backwards)
+    if (progress < currentProgress && stage !== 'complete') {
+        progress = currentProgress;
+    }
+    currentProgress = progress;
 
     // Update progress bar
     if (progressFill) progressFill.style.width = `${progress}%`;
@@ -329,6 +338,9 @@ function updateProgress(stage, progress, message) {
  * Reset progress UI to initial state
  */
 function resetProgress() {
+    // Reset progress tracker
+    currentProgress = 0;
+
     const progressFill = document.getElementById('progressFill');
     const progressPercent = document.getElementById('progressPercent');
     const progressStage = document.getElementById('progressStage');
