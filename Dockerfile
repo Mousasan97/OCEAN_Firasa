@@ -11,7 +11,7 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1
 
-# Install system dependencies (for OpenCV)
+# Install system dependencies (for OpenCV and video/audio processing)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libgomp1 \
     curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
