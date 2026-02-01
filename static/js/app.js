@@ -453,6 +453,7 @@ let selectedFile = null;
 let currentResults = null;
 let radarChart = null;
 let videoThumbnail = null;  // Stores video frame thumbnail for share cards
+let messageHistory = [];     // Shared chat history for floating + fullscreen UIs
 
 // Trait configuration with emojis and colors
 const TRAIT_CONFIG = {
@@ -1110,13 +1111,26 @@ function displayTraitBars(results) {
         const percentage = Math.round(interp.t_score || 50);
 
         // Determine bar color based on score
+        // For Neuroticism, invert the colors: low = good (green), high = concerning (red)
         let barColor;
-        if (percentage >= 70) {
-            barColor = '#22c55e'; // Green for high
-        } else if (percentage >= 50) {
-            barColor = '#f59e0b'; // Yellow/orange for medium
+        if (trait === 'neuroticism') {
+            // Inverted: low neuroticism = emotionally stable = good
+            if (percentage >= 70) {
+                barColor = '#ef4444'; // Red for high neuroticism (concerning)
+            } else if (percentage >= 50) {
+                barColor = '#f59e0b'; // Yellow/orange for medium
+            } else {
+                barColor = '#22c55e'; // Green for low neuroticism (stable)
+            }
         } else {
-            barColor = '#ef4444'; // Red for low
+            // Normal: high = good, low = concerning
+            if (percentage >= 70) {
+                barColor = '#22c55e'; // Green for high
+            } else if (percentage >= 50) {
+                barColor = '#f59e0b'; // Yellow/orange for medium
+            } else {
+                barColor = '#ef4444'; // Red for low
+            }
         }
 
         return `
@@ -1163,10 +1177,17 @@ function displayShareableCards(results) {
         const interp = interpretations[trait] || {};
         const percentage = Math.round(interp.t_score || 50);
 
+        // Inverted colors for Neuroticism (low = good)
         let barColor;
-        if (percentage >= 70) barColor = '#22c55e';
-        else if (percentage >= 50) barColor = '#f59e0b';
-        else barColor = '#ef4444';
+        if (trait === 'neuroticism') {
+            if (percentage >= 70) barColor = '#ef4444';
+            else if (percentage >= 50) barColor = '#f59e0b';
+            else barColor = '#22c55e';
+        } else {
+            if (percentage >= 70) barColor = '#22c55e';
+            else if (percentage >= 50) barColor = '#f59e0b';
+            else barColor = '#ef4444';
+        }
 
         return `
             <div class="mini-score">
@@ -4497,7 +4518,149 @@ function subscribeNewsletter() {
 }
 
 // ============================================
-// AI Chat Assistant
+// AI Chat Assistant — Shared utilities
+// ============================================
+
+/**
+ * Simple markdown parser for chat messages
+ */
+function parseMarkdown(text) {
+    // First, strip out job_results JSON blocks (they're handled separately for the artifact panel)
+    let cleanedText = text
+        // Remove complete JSON blocks
+        .replace(/```json\s*\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*?\}\s*```/g, '')
+        // Remove partial JSON blocks that are still streaming (incomplete)
+        .replace(/```json\s*\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*$/g, '')
+        // Remove "IMPORTANT: Include this JSON block" instruction text
+        .replace(/IMPORTANT:\s*Include this JSON block in your response:?\s*/gi, '')
+        // Clean up excessive whitespace left behind
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+    return cleanedText
+        // Bold: **text** or __text__
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.*?)__/g, '<strong>$1</strong>')
+        // Italic: *text* or _text_
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        .replace(/_([^_]+)_/g, '<em>$1</em>')
+        // Bullet points: - item or • item
+        .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+        // Numbered lists: 1. item
+        .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+        // Wrap consecutive <li> in <ul>
+        .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+        // Clean up newlines inside <ul> tags
+        .replace(/<ul>([\s\S]*?)<\/ul>/g, (match) => match.replace(/\n/g, ''))
+        // Double newlines = paragraph break
+        .replace(/\n\n+/g, '</p><p>')
+        // Single newlines = just a space (not a break)
+        .replace(/\n/g, ' ')
+        // Wrap in paragraph tags
+        .replace(/^(.+)$/s, '<p>$1</p>')
+        // Clean up empty paragraphs
+        .replace(/<p>\s*<\/p>/g, '')
+        // Remove p tags around ul
+        .replace(/<p>\s*(<ul>)/g, '$1')
+        .replace(/(<\/ul>)\s*<\/p>/g, '$1');
+}
+
+/**
+ * Build the chat API payload from current results
+ */
+function buildChatPayload(message) {
+    const interpretations = currentResults.interpretations || {};
+    const oceanScores = {
+        openness: (interpretations.openness?.t_score || 50) / 100,
+        conscientiousness: (interpretations.conscientiousness?.t_score || 50) / 100,
+        extraversion: (interpretations.extraversion?.t_score || 50) / 100,
+        agreeableness: (interpretations.agreeableness?.t_score || 50) / 100,
+        neuroticism: (interpretations.neuroticism?.t_score || 50) / 100
+    };
+    const derivedMetrics = currentResults.derived_metrics || null;
+    const userTranscript = currentResults.user_transcript || null;
+
+    return {
+        message: message,
+        ocean_scores: oceanScores,
+        derived_metrics: derivedMetrics,
+        interpretations: interpretations,
+        user_transcript: userTranscript,
+        message_history: messageHistory.length > 0 ? messageHistory : null
+    };
+}
+
+/**
+ * Stream a chat response from the API via SSE
+ * @param {string} message - The user message
+ * @param {HTMLElement} streamingEl - Element to render streaming text into
+ * @param {HTMLElement} scrollContainer - Container to auto-scroll
+ * @returns {Promise<string>} The full assistant response text
+ */
+async function streamChatResponse(message, streamingEl, scrollContainer) {
+    const payload = buildChatPayload(message);
+    let fullResponse = '';
+
+    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to get response from coach');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+            if (line.startsWith('data: ')) {
+                try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.type === 'chunk') {
+                        fullResponse += data.content;
+                        streamingEl.innerHTML = parseMarkdown(fullResponse);
+                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                    } else if (data.type === 'done') {
+                        streamingEl.classList.remove('streaming');
+                        // Check for job results in the response
+                        const cleanedResponse = processJobResults(fullResponse);
+                        streamingEl.innerHTML = parseMarkdown(cleanedResponse);
+                        fullResponse = cleanedResponse; // Update for message history
+                    } else if (data.type === 'error') {
+                        throw new Error(data.message);
+                    }
+                } catch (parseError) {
+                    if (line.slice(6).trim()) {
+                        console.warn('SSE parse error:', parseError);
+                    }
+                }
+            }
+        }
+    }
+
+    // Update shared message history
+    messageHistory.push({ role: 'user', content: message });
+    messageHistory.push({ role: 'assistant', content: fullResponse });
+    if (messageHistory.length > 20) {
+        messageHistory = messageHistory.slice(-20);
+    }
+
+    return fullResponse;
+}
+
+// ============================================
+// AI Chat Assistant — Floating Panel
 // ============================================
 
 /**
@@ -4562,9 +4725,6 @@ function initAiAssistant() {
         }
     }
 
-    // Message history for multi-turn conversations
-    let messageHistory = [];
-
     // Send message to AI personality coach with streaming
     async function sendMessage() {
         if (!chatInput) return;
@@ -4596,123 +4756,18 @@ function initAiAssistant() {
         chatWindow.classList.add('has-messages');
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        let fullResponse = '';
-
         try {
-            // Prepare OCEAN scores from interpretations (T-scores, 0-100 scale)
-            // These match what's displayed in the UI
-            const interpretations = currentResults.interpretations || {};
-            const oceanScores = {
-                openness: (interpretations.openness?.t_score || 50) / 100,
-                conscientiousness: (interpretations.conscientiousness?.t_score || 50) / 100,
-                extraversion: (interpretations.extraversion?.t_score || 50) / 100,
-                agreeableness: (interpretations.agreeableness?.t_score || 50) / 100,
-                neuroticism: (interpretations.neuroticism?.t_score || 50) / 100
-            };
-
-            // Prepare derived metrics if available
-            const derivedMetrics = currentResults.derived_metrics || null;
-
-            // Get user's spoken responses from video recording (if available)
-            const userTranscript = currentResults.user_transcript || null;
-
-            // Build request payload with full interpretations for personalized insights
-            const payload = {
-                message: message,
-                ocean_scores: oceanScores,
-                derived_metrics: derivedMetrics,
-                interpretations: interpretations,
-                user_transcript: userTranscript,
-                message_history: messageHistory.length > 0 ? messageHistory : null
-            };
-
-            // Call the streaming chat API
-            const response = await fetch(`${API_BASE_URL}/chat/stream`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Failed to get response from coach');
+            await streamChatResponse(message, streamingEl, messagesContainer);
+            // Sync full-screen chat if it exists
+            if (typeof syncMessagesToFullScreen === 'function') {
+                syncMessagesToFullScreen();
             }
-
-            // Read the stream
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-
-                            if (data.type === 'chunk') {
-                                // Append chunk to response
-                                fullResponse += data.content;
-                                // Parse markdown in real-time during streaming
-                                streamingEl.innerHTML = parseMarkdown(fullResponse);
-                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                            } else if (data.type === 'done') {
-                                // Streaming complete - final markdown parse
-                                streamingEl.classList.remove('streaming');
-                                streamingEl.innerHTML = parseMarkdown(fullResponse);
-                            } else if (data.type === 'error') {
-                                throw new Error(data.message);
-                            }
-                        } catch (parseError) {
-                            // Ignore parse errors for incomplete chunks
-                            if (line.slice(6).trim()) {
-                                console.warn('SSE parse error:', parseError);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Add to message history for context
-            messageHistory.push({ role: 'user', content: message });
-            messageHistory.push({ role: 'assistant', content: fullResponse });
-
-            // Keep only last 20 messages to avoid context overflow
-            if (messageHistory.length > 20) {
-                messageHistory = messageHistory.slice(-20);
-            }
-
         } catch (error) {
             console.error('AI Chat error:', error);
             streamingEl.textContent = `Sorry, I encountered an error: ${error.message}. Please try again.`;
             streamingEl.classList.remove('streaming');
             streamingEl.classList.add('error');
         }
-    }
-
-    // Simple markdown parser for chat messages
-    function parseMarkdown(text) {
-        return text
-            // Bold: **text** or __text__
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/__(.*?)__/g, '<strong>$1</strong>')
-            // Italic: *text* or _text_
-            .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-            .replace(/_([^_]+)_/g, '<em>$1</em>')
-            // Bullet points: - item or • item
-            .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
-            // Numbered lists: 1. item
-            .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
-            // Wrap consecutive <li> in <ul>
-            .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-            // Line breaks
-            .replace(/\n/g, '<br>');
     }
 
     // Add message to chat display
@@ -4807,3 +4862,645 @@ function openAiChatWithQuestion(traitName, event) {
         }
     }
 }
+
+// ============================================
+// Full-Screen AI Chat
+// ============================================
+
+/**
+ * Sync message history into the full-screen messages container
+ */
+function syncMessagesToFullScreen() {
+    const container = document.getElementById('fsChatMessages');
+    const centerContent = document.getElementById('fsCenterContent');
+    if (!container) return;
+
+    container.innerHTML = '';
+    messageHistory.forEach(msg => {
+        const el = document.createElement('div');
+        el.className = `fs-message ${msg.role}`;
+        if (msg.role === 'assistant') {
+            el.innerHTML = parseMarkdown(msg.content);
+        } else {
+            el.textContent = msg.content;
+        }
+        container.appendChild(el);
+    });
+    container.scrollTop = container.scrollHeight;
+
+    // Toggle hero / suggestions / layout mode
+    const hero = document.getElementById('fsChatHero');
+    const suggestions = document.getElementById('fsSuggestions');
+    const chatMain = document.querySelector('.fs-chat-main');
+    if (messageHistory.length > 0) {
+        hero?.classList.add('hidden');
+        suggestions?.classList.add('hidden');
+        centerContent?.classList.add('has-messages');
+        chatMain?.classList.add('chatting');
+    } else {
+        hero?.classList.remove('hidden');
+        suggestions?.classList.remove('hidden');
+        centerContent?.classList.remove('has-messages');
+        chatMain?.classList.remove('chatting');
+    }
+}
+
+/**
+ * Sync message history back into the floating chat container
+ */
+function syncMessagesToFloating() {
+    const container = document.getElementById('aiChatMessages');
+    const chatWindow = document.getElementById('aiChatWindow');
+    if (!container) return;
+
+    container.innerHTML = '';
+    messageHistory.forEach(msg => {
+        const el = document.createElement('div');
+        el.className = `ai-message ${msg.role}`;
+        if (msg.role === 'assistant') {
+            el.innerHTML = parseMarkdown(msg.content);
+        } else {
+            el.textContent = msg.content;
+        }
+        container.appendChild(el);
+    });
+
+    if (messageHistory.length > 0) {
+        container.classList.add('has-messages');
+        chatWindow?.classList.add('has-messages');
+    }
+    container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * Open the full-screen chat overlay
+ */
+function openFullChat() {
+    const overlay = document.getElementById('fsChatOverlay');
+    if (!overlay) return;
+
+    syncMessagesToFullScreen();
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Focus input
+    setTimeout(() => {
+        document.getElementById('fsChatInput')?.focus();
+    }, 350);
+}
+
+/**
+ * Close the full-screen chat overlay
+ */
+function closeFullChat() {
+    const overlay = document.getElementById('fsChatOverlay');
+    if (!overlay) return;
+
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+
+    // Sync messages back to floating chat
+    syncMessagesToFloating();
+}
+
+// ============================================
+// Artifact Panel Functions
+// ============================================
+
+/**
+ * Show the artifact panel with cultural fit data
+ */
+function showArtifactPanel() {
+    const grid = document.getElementById('fsChatGrid');
+    const panel = document.getElementById('fsArtifactPanel');
+    if (grid && panel) {
+        grid.classList.add('has-artifact');
+    }
+}
+
+/**
+ * Hide the artifact panel
+ */
+function hideArtifactPanel() {
+    const grid = document.getElementById('fsChatGrid');
+    if (grid) {
+        grid.classList.remove('has-artifact');
+    }
+}
+
+/**
+ * Check if message is asking about cultural fit
+ */
+function isCulturalFitQuery(message) {
+    const lowerMsg = message.toLowerCase();
+    return lowerMsg.includes('cultural fit') ||
+           lowerMsg.includes('workplace culture') ||
+           lowerMsg.includes('work environment') ||
+           lowerMsg.includes('career match') ||
+           lowerMsg.includes('best culture') ||
+           lowerMsg.includes('culture type');
+}
+
+/**
+ * Fetch structured cultural fit data from backend
+ */
+async function fetchCulturalFitData() {
+    if (!currentResults || !currentResults.predictions) {
+        return null;
+    }
+
+    // Use the same score calculation as buildChatPayload for consistency
+    const interpretations = currentResults.interpretations || {};
+    const oceanScores = {
+        openness: (interpretations.openness?.t_score || 50) / 100,
+        conscientiousness: (interpretations.conscientiousness?.t_score || 50) / 100,
+        extraversion: (interpretations.extraversion?.t_score || 50) / 100,
+        agreeableness: (interpretations.agreeableness?.t_score || 50) / 100,
+        neuroticism: (interpretations.neuroticism?.t_score || 50) / 100
+    };
+    const derivedMetrics = currentResults.derived_metrics || null;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/cultural-fit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ocean_scores: oceanScores,
+                derived_metrics: derivedMetrics
+            })
+        });
+
+        if (!response.ok) {
+            console.warn('Cultural fit endpoint returned error');
+            return null;
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.warn('Failed to fetch cultural fit data:', error);
+        return null;
+    }
+}
+
+/**
+ * Populate the artifact panel with cultural fit data
+ */
+function populateCulturalFitPanel(data) {
+    if (!data) return;
+
+    // Profile type
+    const profileType = document.getElementById('fsProfileType');
+    const profileDiff = document.getElementById('fsProfileDiff');
+    const profileNote = document.getElementById('fsProfileNote');
+
+    if (profileType) profileType.textContent = data.profile_type || 'Unknown';
+    if (profileDiff) profileDiff.textContent = `${data.differentiation || 0}% differentiation`;
+    if (profileNote) profileNote.textContent = data.profile_note || '';
+
+    // Culture matches
+    const matchesContainer = document.getElementById('fsCultureMatches');
+    if (matchesContainer && data.top_matches) {
+        matchesContainer.innerHTML = '';
+
+        data.top_matches.slice(0, 3).forEach((match, index) => {
+            const card = document.createElement('div');
+            card.className = `fs-culture-card${index === 0 ? ' top-match' : ''}`;
+
+            const strengthsHtml = match.strengths && match.strengths.length > 0
+                ? `<div class="fs-detail-row strengths">
+                       <span class="fs-detail-icon">✓</span>
+                       <span>${match.strengths.slice(0, 2).join(', ')}</span>
+                   </div>`
+                : '';
+
+            const challengesHtml = match.potential_challenges && match.potential_challenges.length > 0
+                ? `<div class="fs-detail-row challenges">
+                       <span class="fs-detail-icon">⚠</span>
+                       <span>${match.potential_challenges.slice(0, 2).join(', ')}</span>
+                   </div>`
+                : '';
+
+            const examplesHtml = match.example_companies && match.example_companies.length > 0
+                ? `<div class="fs-culture-examples">
+                       ${match.example_companies.slice(0, 3).map(ex => `<span class="fs-example-tag">${ex}</span>`).join('')}
+                   </div>`
+                : '';
+
+            card.innerHTML = `
+                <div class="fs-culture-card-header">
+                    <div class="fs-culture-name">
+                        <span class="rank">${index + 1}</span>
+                        ${match.culture_type}
+                    </div>
+                    <div class="fs-culture-score">
+                        <span class="fs-score-value">${match.fit_score}%</span>
+                        <span class="fs-score-label">fit</span>
+                    </div>
+                </div>
+                <div class="fs-score-bar">
+                    <div class="fs-score-fill" style="width: ${match.fit_score}%"></div>
+                </div>
+                <p class="fs-culture-description">${match.description || ''}</p>
+                <div class="fs-culture-details">
+                    ${strengthsHtml}
+                    ${challengesHtml}
+                </div>
+                ${examplesHtml}
+            `;
+
+            matchesContainer.appendChild(card);
+        });
+    }
+
+    // Recommendation
+    const recommendation = document.getElementById('fsRecommendation');
+    if (recommendation && data.recommendation) {
+        // Convert **text** to <strong>text</strong>
+        const formattedRec = data.recommendation.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        recommendation.innerHTML = formattedRec;
+    }
+}
+
+// ============================================
+// Job Cards Functions
+// ============================================
+
+/**
+ * Detect and extract job results JSON from AI response text
+ * @param {string} text - The full AI response text
+ * @returns {object|null} Parsed job results or null if not found
+ */
+function extractJobResults(text) {
+    // Look for JSON block with job_results type
+    const jsonMatch = text.match(/```json\s*(\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*?\})\s*```/);
+    if (jsonMatch) {
+        try {
+            const data = JSON.parse(jsonMatch[1]);
+            if (data.type === 'job_results' && Array.isArray(data.jobs)) {
+                return data;
+            }
+        } catch (e) {
+            console.warn('Failed to parse job results JSON:', e);
+        }
+    }
+    return null;
+}
+
+/**
+ * Remove the JSON block from the response text for cleaner display
+ * @param {string} text - The full AI response text
+ * @returns {string} Text with JSON block removed
+ */
+function removeJobResultsJson(text) {
+    return text.replace(/```json\s*\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*?\}\s*```/g, '').trim();
+}
+
+/**
+ * Render job cards in the artifact panel
+ * @param {Array} jobs - Array of job objects from AI
+ */
+function renderJobCards(jobs) {
+    const container = document.getElementById('fsJobCards');
+    const emptyState = document.getElementById('fsJobsEmpty');
+    const searchInfo = document.getElementById('fsJobsSearchInfo');
+    const jobCount = document.getElementById('fsJobCount');
+
+    if (!container) return;
+
+    // Clear previous cards (keep empty state element)
+    container.querySelectorAll('.fs-job-card').forEach(card => card.remove());
+
+    if (!jobs || jobs.length === 0) {
+        if (emptyState) emptyState.style.display = 'flex';
+        if (jobCount) jobCount.style.display = 'none';
+        return;
+    }
+
+    // Hide empty state
+    if (emptyState) emptyState.style.display = 'none';
+
+    // Update count badge
+    if (jobCount) {
+        jobCount.textContent = jobs.length;
+        jobCount.style.display = 'inline';
+    }
+
+    // Update search info
+    if (searchInfo) {
+        searchInfo.innerHTML = `Found <strong>${jobs.length}</strong> matching jobs`;
+    }
+
+    // Sort by culture fit score
+    const sortedJobs = [...jobs].sort((a, b) => (b.culture_fit || 0) - (a.culture_fit || 0));
+
+    // Render each job card
+    sortedJobs.forEach((job, index) => {
+        const card = document.createElement('div');
+        const fitScore = job.culture_fit || 50;
+        const fitClass = fitScore >= 75 ? 'high-fit' : fitScore >= 60 ? 'medium-fit' : '';
+
+        card.className = `fs-job-card ${fitClass}`;
+        card.innerHTML = `
+            <div class="fs-job-card-header">
+                <div class="fs-job-info">
+                    <h4 class="fs-job-title">${escapeHtml(job.title || 'Unknown Position')}</h4>
+                    <p class="fs-job-company">
+                        ${job.company_logo ? `<img src="${escapeHtml(job.company_logo)}" alt="" onerror="this.style.display='none'">` : ''}
+                        ${escapeHtml(job.company || 'Unknown Company')}
+                    </p>
+                </div>
+                <div class="fs-job-fit-badge">
+                    <span class="fs-fit-score">${fitScore}%</span>
+                    <span class="fs-fit-label">fit</span>
+                </div>
+            </div>
+            <div class="fs-job-meta">
+                ${job.location ? `<span class="fs-job-tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    ${escapeHtml(job.location)}
+                </span>` : ''}
+                ${job.salary ? `<span class="fs-job-tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                    ${escapeHtml(job.salary)}
+                </span>` : ''}
+                ${job.posted ? `<span class="fs-job-tag">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    ${escapeHtml(job.posted)}
+                </span>` : ''}
+            </div>
+            ${job.culture_type ? `<div class="fs-job-culture">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                ${escapeHtml(job.culture_type)}
+            </div>` : ''}
+            ${job.why_fits ? `<p class="fs-job-why">${escapeHtml(job.why_fits)}</p>` : ''}
+            ${job.apply_link ? `<a href="${escapeHtml(job.apply_link)}" target="_blank" rel="noopener noreferrer" class="fs-job-apply">
+                Apply Now
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+            </a>` : ''}
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Switch artifact panel to show jobs tab
+ */
+function switchToJobsTab() {
+    const cultureTab = document.getElementById('fsCultureTab');
+    const jobsTab = document.getElementById('fsJobsTab');
+    const cultureContent = document.getElementById('fsArtifactContent');
+    const jobsContent = document.getElementById('fsArtifactJobs');
+    const title = document.getElementById('fsArtifactTitle');
+
+    cultureTab?.classList.remove('active');
+    jobsTab?.classList.add('active');
+
+    if (cultureContent) cultureContent.style.display = 'none';
+    if (jobsContent) jobsContent.style.display = 'flex';
+    if (title) title.textContent = 'Job Matches';
+}
+
+/**
+ * Switch artifact panel to show culture fit tab
+ */
+function switchToCultureTab() {
+    const cultureTab = document.getElementById('fsCultureTab');
+    const jobsTab = document.getElementById('fsJobsTab');
+    const cultureContent = document.getElementById('fsArtifactContent');
+    const jobsContent = document.getElementById('fsArtifactJobs');
+    const title = document.getElementById('fsArtifactTitle');
+
+    jobsTab?.classList.remove('active');
+    cultureTab?.classList.add('active');
+
+    if (jobsContent) jobsContent.style.display = 'none';
+    if (cultureContent) cultureContent.style.display = 'flex';
+    if (title) title.textContent = 'Cultural Fit Analysis';
+}
+
+/**
+ * Initialize artifact panel tab switching
+ */
+function initArtifactTabs() {
+    const cultureTab = document.getElementById('fsCultureTab');
+    const jobsTab = document.getElementById('fsJobsTab');
+
+    cultureTab?.addEventListener('click', switchToCultureTab);
+    jobsTab?.addEventListener('click', switchToJobsTab);
+}
+
+// Initialize artifact tabs when DOM is ready
+document.addEventListener('DOMContentLoaded', initArtifactTabs);
+
+/**
+ * Process AI response for job results and update UI accordingly
+ * @param {string} response - The full AI response text
+ * @returns {string} The cleaned response text for display
+ */
+function processJobResults(response) {
+    const jobData = extractJobResults(response);
+
+    if (jobData && jobData.jobs && jobData.jobs.length > 0) {
+        // Render job cards
+        renderJobCards(jobData.jobs);
+
+        // Switch to jobs tab and show panel
+        switchToJobsTab();
+        showArtifactPanel();
+
+        // Return cleaned response without JSON block
+        return removeJobResultsJson(response);
+    }
+
+    return response;
+}
+
+/**
+ * Send a message from the full-screen chat
+ */
+async function sendFullScreenMessage(messageText) {
+    const input = document.getElementById('fsChatInput');
+    const container = document.getElementById('fsChatMessages');
+    const hero = document.getElementById('fsChatHero');
+    const suggestions = document.getElementById('fsSuggestions');
+    const centerContent = document.getElementById('fsCenterContent');
+
+    const message = messageText || (input ? input.value.trim() : '');
+    if (!message) return;
+
+    // Check for personality data
+    if (!currentResults || !currentResults.predictions) {
+        const errEl = document.createElement('div');
+        errEl.className = 'fs-message assistant';
+        errEl.textContent = 'Please complete a personality analysis first so I can provide personalized coaching advice.';
+        centerContent?.classList.add('has-messages');
+        container.appendChild(errEl);
+        container.scrollTop = container.scrollHeight;
+        return;
+    }
+
+    // Check if this is a cultural fit query
+    const isCulturalFit = isCulturalFitQuery(message);
+
+    // Switch to chat mode: hide hero & suggestions, enable messages layout
+    const chatMain = document.querySelector('.fs-chat-main');
+    hero?.classList.add('hidden');
+    suggestions?.classList.add('hidden');
+    centerContent?.classList.add('has-messages');
+    chatMain?.classList.add('chatting');
+
+    // Add user message
+    const userEl = document.createElement('div');
+    userEl.className = 'fs-message user';
+    userEl.textContent = message;
+    container.appendChild(userEl);
+    container.scrollTop = container.scrollHeight;
+
+    // Clear input
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+    }
+
+    // Create streaming element
+    const streamingEl = document.createElement('div');
+    streamingEl.className = 'fs-message assistant streaming';
+    streamingEl.textContent = '';
+    container.appendChild(streamingEl);
+    container.scrollTop = container.scrollHeight;
+
+    try {
+        const response = await streamChatResponse(message, streamingEl, container);
+
+        // If this was a cultural fit query, show the artifact panel
+        if (isCulturalFit) {
+            const culturalFitData = await fetchCulturalFitData();
+            if (culturalFitData) {
+                populateCulturalFitPanel(culturalFitData);
+                showArtifactPanel();
+            }
+        }
+
+        // Sync to floating chat
+        syncMessagesToFloating();
+    } catch (error) {
+        console.error('Full-screen chat error:', error);
+        streamingEl.textContent = `Sorry, I encountered an error: ${error.message}. Please try again.`;
+        streamingEl.classList.remove('streaming');
+        streamingEl.classList.add('error');
+    }
+}
+
+/**
+ * Initialize the full-screen chat UI
+ */
+function initFullScreenChat() {
+    const overlay = document.getElementById('fsChatOverlay');
+    const navBtn = document.getElementById('fsNavBtn');
+    const navBtnMobile = document.getElementById('fsNavBtnMobile');
+    const backBtn = document.getElementById('fsChatBack');
+    const input = document.getElementById('fsChatInput');
+    const sendBtn = document.getElementById('fsSendBtn');
+    const suggestions = document.getElementById('fsSuggestions');
+
+    // Artifact panel elements
+    const artifactClose = document.getElementById('fsArtifactClose');
+    const artifactRefresh = document.getElementById('fsArtifactRefresh');
+
+    if (!overlay) return;
+
+    // Top navbar button opens full-screen chat
+    navBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openFullChat();
+    });
+
+    // Mobile menu button also opens full-screen chat
+    navBtnMobile?.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Close mobile menu first
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenu) mobileMenu.classList.remove('open');
+        openFullChat();
+    });
+
+    // Back button closes
+    backBtn?.addEventListener('click', closeFullChat);
+
+    // Escape key closes (overlay or artifact panel)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) {
+            const grid = document.getElementById('fsChatGrid');
+            if (grid?.classList.contains('has-artifact')) {
+                hideArtifactPanel();
+            } else {
+                closeFullChat();
+            }
+        }
+    });
+
+    // Send button
+    sendBtn?.addEventListener('click', () => sendFullScreenMessage());
+
+    // Enter to send (shift+enter for newline)
+    input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendFullScreenMessage();
+        }
+    });
+
+    // Auto-resize textarea
+    input?.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+
+    // Suggestion pills
+    suggestions?.addEventListener('click', (e) => {
+        const pill = e.target.closest('.fs-suggestion-pill');
+        if (pill) {
+            const prompt = pill.getAttribute('data-prompt');
+            if (prompt) {
+                sendFullScreenMessage(prompt);
+            }
+        }
+    });
+
+    // Artifact panel close button
+    artifactClose?.addEventListener('click', hideArtifactPanel);
+
+    // Artifact panel refresh button
+    artifactRefresh?.addEventListener('click', async () => {
+        const culturalFitData = await fetchCulturalFitData();
+        if (culturalFitData) {
+            populateCulturalFitPanel(culturalFitData);
+        }
+    });
+}
+
+// Initialize Full-Screen Chat when DOM is ready
+document.addEventListener('DOMContentLoaded', initFullScreenChat);

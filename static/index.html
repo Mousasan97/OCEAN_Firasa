@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OCEAN Personality Analysis</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=89">
+    <link rel="stylesheet" href="/static/css/style.css?v=116">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -22,6 +22,11 @@
                 <a href="#" class="nav-link">How it works</a>
                 <a href="#" class="nav-link">Solutions</a>
                 <a href="#" class="nav-link">Pricing</a>
+                <a href="#" class="nav-link nav-firasa-btn" id="fsNavBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 3px;">
+                        <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>
+                    </svg>Firasa Assistant
+                </a>
             </div>
 
             <!-- Right Side Actions -->
@@ -59,6 +64,7 @@
             <a href="#" class="nav-link-mobile">How it works</a>
             <a href="#" class="nav-link-mobile">Solutions</a>
             <a href="#" class="nav-link-mobile">Pricing</a>
+            <a href="#" class="nav-link-mobile nav-firasa-btn-mobile" id="fsNavBtnMobile">Firasa Assistant</a>
             <a href="#" class="nav-link-mobile">Sign in</a>
         </div>
     </nav>
@@ -1281,6 +1287,176 @@
         <div class="footer-grid-effect"></div>
     </footer>
 
+    <!-- Full-Screen AI Chat Overlay -->
+    <div class="fs-chat-overlay" id="fsChatOverlay">
+        <!-- Aurora orb glow effect -->
+        <div class="fs-aurora-orb"></div>
+
+        <!-- Grid container for chat + artifact panel -->
+        <div class="fs-chat-grid" id="fsChatGrid">
+            <!-- Main chat area (left side) -->
+            <div class="fs-chat-main">
+                <!-- Back button (top-left) -->
+                <button class="fs-back-btn" id="fsChatBack">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                </button>
+
+                <!-- Centered content wrapper (hero state) -->
+                <div class="fs-center-content" id="fsCenterContent">
+                    <!-- Hero section (shown when no messages) -->
+                    <div class="fs-chat-hero" id="fsChatHero">
+                        <h1 class="fs-hero-title">Firasa AI</h1>
+                        <p class="fs-hero-subtitle">Your AI-powered personality coach — just start typing below.</p>
+                    </div>
+
+                    <!-- Messages container (grows when chatting) -->
+                    <div class="fs-chat-messages" id="fsChatMessages"></div>
+
+                    <!-- Input area -->
+                    <div class="fs-chat-input-wrapper">
+                        <div class="fs-chat-input-box">
+                            <textarea class="fs-chat-textarea" id="fsChatInput" placeholder="Type your request..." rows="1"></textarea>
+                            <div class="fs-input-footer">
+                                <button class="fs-attach-btn" title="Attach file">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                                    </svg>
+                                </button>
+                                <button class="fs-send-btn" id="fsSendBtn" aria-label="Send message">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suggestion pills (below input) -->
+                    <div class="fs-suggestions" id="fsSuggestions">
+                        <button class="fs-suggestion-pill" data-prompt="What are my strongest personality traits?">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            My strengths
+                        </button>
+                        <button class="fs-suggestion-pill" data-prompt="How can I improve my weakest trait?">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            Improve weakest trait
+                        </button>
+                        <button class="fs-suggestion-pill" data-prompt="What workplace cultures and environments best match my personality?">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                            Cultural fit
+                        </button>
+                        <button class="fs-suggestion-pill" data-prompt="How does my personality affect my relationships?">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            Relationship insights
+                        </button>
+                        <button class="fs-suggestion-pill" data-prompt="Give me a daily habit plan based on my personality">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            Daily habit plan
+                        </button>
+                        <button class="fs-suggestion-pill" data-prompt="What are my stress triggers and how can I manage them?">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                            Stress management
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Artifact Panel (right side, hidden by default) -->
+            <div class="fs-artifact-panel" id="fsArtifactPanel">
+                <!-- Panel Header -->
+                <div class="fs-artifact-header">
+                    <div class="fs-artifact-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
+                        <span id="fsArtifactTitle">Cultural Fit Analysis</span>
+                    </div>
+                    <div class="fs-artifact-actions">
+                        <button class="fs-artifact-btn" id="fsArtifactRefresh" title="Refresh">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>
+                            </svg>
+                        </button>
+                        <button class="fs-artifact-btn" id="fsArtifactClose" title="Close panel">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabs for switching views -->
+                <div class="fs-artifact-tabs" id="fsArtifactTabs">
+                    <button class="fs-artifact-tab active" data-tab="culture" id="fsCultureTab">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        Culture Fit
+                    </button>
+                    <button class="fs-artifact-tab" data-tab="jobs" id="fsJobsTab">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
+                        Job Matches
+                        <span class="fs-job-count" id="fsJobCount" style="display: none;">0</span>
+                    </button>
+                </div>
+
+                <!-- Panel Content - Cultural Fit -->
+                <div class="fs-artifact-content" id="fsArtifactContent">
+                    <!-- Profile Type Badge -->
+                    <div class="fs-artifact-profile" id="fsArtifactProfile">
+                        <div class="fs-profile-badge">
+                            <span class="fs-profile-type" id="fsProfileType">Loading...</span>
+                            <span class="fs-profile-diff" id="fsProfileDiff"></span>
+                        </div>
+                        <p class="fs-profile-note" id="fsProfileNote"></p>
+                    </div>
+
+                    <!-- Culture Matches -->
+                    <div class="fs-artifact-section">
+                        <h3 class="fs-artifact-section-title">Best Culture Matches</h3>
+                        <div class="fs-culture-matches" id="fsCultureMatches">
+                            <!-- Culture match cards will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Recommendation -->
+                    <div class="fs-artifact-section">
+                        <h3 class="fs-artifact-section-title">Recommendation</h3>
+                        <div class="fs-recommendation" id="fsRecommendation">
+                            <!-- Recommendation text will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Content - Job Matches -->
+                <div class="fs-artifact-jobs" id="fsArtifactJobs" style="display: none;">
+                    <!-- Search info -->
+                    <div class="fs-jobs-header" id="fsJobsHeader">
+                        <p class="fs-jobs-search-info" id="fsJobsSearchInfo">
+                            Search for jobs to see personalized matches
+                        </p>
+                    </div>
+
+                    <!-- Job Cards Container -->
+                    <div class="fs-job-cards" id="fsJobCards">
+                        <!-- Job cards will be inserted here -->
+                        <div class="fs-jobs-empty" id="fsJobsEmpty">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                            </svg>
+                            <p>Ask the assistant to find matching jobs for you</p>
+                            <span>Example: "Find software engineer jobs in Milan"</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Chat Assistant -->
     <div class="ai-assistant-container" id="aiAssistant">
         <!-- Floating Button -->
@@ -1402,6 +1578,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=86"></script>
+    <script src="/static/js/app.js?v=96"></script>
 </body>
 </html>
