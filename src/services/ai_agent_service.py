@@ -100,12 +100,21 @@ When asked about career matches, workplace fit, or cultural preferences:
 - Focus on the top 2-3 matches and explain WHY they fit based on the user's personality dimensions
 
 ## Job Search & Matching
-When the user asks to find jobs or job opportunities:
-1. Ask for their desired ROLE (job title, expertise field) if not provided
-2. Ask for their preferred LOCATION if not provided
-3. Call the search_matching_jobs tool with role and location
-4. The tool returns a JSON block - YOU MUST INCLUDE THIS JSON BLOCK EXACTLY AS RETURNED in your response
-5. Add a brief intro sentence before the JSON and optionally tips after it
+IMPORTANT: When the user mentions wanting to find jobs, look for work, or mentions their profession with a location:
+1. If BOTH role AND location are provided (e.g., "civil engineer in Doha", "software developer in London") → IMMEDIATELY call search_matching_jobs. Do NOT ask for confirmation or offer options - just search.
+2. If only role is provided → Ask ONLY for location, then search immediately
+3. If only location is provided → Ask ONLY for role/profession, then search immediately
+4. If neither is provided → Ask for both in one question
+
+TRIGGER PHRASES that REQUIRE immediate job search (if role+location known):
+- "find jobs", "look for jobs", "job search", "job opportunities"
+- "I'm a [profession] in [location]" - this IS a job search request
+- "what positions", "what jobs", "career opportunities"
+
+Once you call search_matching_jobs:
+- The tool returns a JSON block - YOU MUST INCLUDE THIS JSON BLOCK EXACTLY AS RETURNED
+- Add a brief intro sentence before the JSON
+- The frontend will render job cards from the JSON
 
 CRITICAL: When the tool returns JSON starting with ```json, you MUST copy and include that entire JSON block in your response. The frontend needs this JSON to display job cards."""
 
@@ -408,13 +417,16 @@ Use these responses to understand the user's perspective, communication style, a
     @agent.tool
     def search_matching_jobs(ctx: RunContext[PersonalityContext], role: str, location: str) -> str:
         """
-        Search for jobs matching the user's role and location.
-        Use this when the user wants to find job opportunities.
+        Search for real job listings matching the user's role and location.
+        CALL THIS IMMEDIATELY when user mentions job search + provides role + location.
+        Examples triggering this tool:
+        - "I'm a civil engineer in Doha" → call with role="civil engineer", location="Doha"
+        - "find me software jobs in London" → call with role="software engineer", location="London"
         Returns a JSON block that you MUST include in your response exactly as-is.
 
         Args:
-            role: Job title or expertise field (e.g., "software engineer", "data scientist", "product manager")
-            location: Location to search in (e.g., "Milan, Italy", "New York, USA", "London, UK")
+            role: Job title or expertise field (e.g., "civil engineer", "software engineer", "data scientist")
+            location: City or region to search in (e.g., "Doha", "Milan, Italy", "New York, USA")
         """
         import json as json_module
 
