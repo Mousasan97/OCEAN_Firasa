@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, AsyncGenerator
 
 from src.services.ai_agent_service import get_personality_coach
+from src.services.cultural_fit_service import get_cultural_fit_service
 from src.utils.logger import get_logger
 from src.utils.config import settings
 
@@ -207,3 +208,60 @@ async def chat_health():
         "status": "available" if settings.AI_REPORT_ENABLED else "disabled",
         "provider": settings.AI_PROVIDER if settings.AI_REPORT_ENABLED else None
     }
+
+
+# =============================================================================
+# Cultural Fit Endpoint
+# =============================================================================
+
+class CulturalFitRequest(BaseModel):
+    """Request body for cultural fit endpoint."""
+    ocean_scores: Dict[str, float] = Field(
+        ...,
+        description="OCEAN scores (openness, conscientiousness, extraversion, agreeableness, neuroticism)"
+    )
+    derived_metrics: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Optional derived personality metrics"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "ocean_scores": {
+                    "openness": 0.72,
+                    "conscientiousness": 0.45,
+                    "extraversion": 0.58,
+                    "agreeableness": 0.65,
+                    "neuroticism": 0.38
+                }
+            }
+        }
+
+
+@router.post("/cultural-fit")
+async def get_cultural_fit(request: CulturalFitRequest):
+    """
+    Get cultural fit analysis matching personality to workplace culture types.
+
+    Analyzes OCEAN scores to compute 8 culture dimensions and matches
+    against 12 workplace culture types using cosine similarity.
+
+    Returns:
+        Cultural fit summary with top matches, dimensions, and recommendations
+    """
+    try:
+        service = get_cultural_fit_service()
+        result = service.get_cultural_fit_summary(
+            ocean_scores=request.ocean_scores,
+            derived_metrics=request.derived_metrics
+        )
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Cultural fit error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute cultural fit: {str(e)}"
+        )

@@ -144,6 +144,10 @@ class Settings(BaseSettings):
     VERTEX_MODEL: str = "gemini-2.5-flash"  # gemini-2.5-flash, gemini-2.5-pro, etc.
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None  # Path to service account JSON
 
+    # Job Search API (SerpAPI Google Jobs)
+    SERPAPI_KEY: Optional[str] = None
+    JOB_SEARCH_ENABLED: bool = True
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

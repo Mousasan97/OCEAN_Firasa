@@ -11,7 +11,10 @@ from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext
 
 from src.services.llm_provider import get_llm_provider
+from src.services.cultural_fit_service import get_cultural_fit_analysis
+from src.services.job_search_service import search_jobs_for_agent, get_job_search_service
 from src.utils.logger import get_logger
+from src.utils.config import settings
 
 logger = get_logger(__name__)
 
@@ -85,8 +88,26 @@ IMPORTANT: When the user asks about a specific trait or wants to improve:
 2. Use get_ocean_scores for an overview of all scores
 3. Use get_all_interpretations to see all personalized insights
 4. Use get_user_responses to see what the user SAID during their video recording - this gives you context about their perspective and communication style
+5. Use get_cultural_fit when the user asks about careers, workplace culture, job fit, or work environments - this matches their personality to 12 workplace culture types
 
-The interpretation tools contain the user's actual analysis results with personalized descriptions. The user transcript shows what they actually said during assessment questions - use this to give more relevant, contextualized advice. No trait is "good" or "bad"."""
+The interpretation tools contain the user's actual analysis results with personalized descriptions. The user transcript shows what they actually said during assessment questions - use this to give more relevant, contextualized advice. No trait is "good" or "bad".
+
+## Cultural Fit Analysis
+When asked about career matches, workplace fit, or cultural preferences:
+- Use get_cultural_fit to analyze which workplace cultures match their personality
+- The tool returns top culture type matches with fit scores, strengths, and potential challenges
+- Culture types include: Startup Disruptor, Tech Innovator, Corporate Enterprise, Creative Agency, Mission-Driven, Consulting, Remote/Distributed, Family Business, Research/Academic, Healthcare, Government, and Entrepreneurial
+- Focus on the top 2-3 matches and explain WHY they fit based on the user's personality dimensions
+
+## Job Search & Matching
+When the user asks to find jobs or job opportunities:
+1. Ask for their desired ROLE (job title, expertise field) if not provided
+2. Ask for their preferred LOCATION if not provided
+3. Call the search_matching_jobs tool with role and location
+4. The tool returns a JSON block - YOU MUST INCLUDE THIS JSON BLOCK EXACTLY AS RETURNED in your response
+5. Add a brief intro sentence before the JSON and optionally tips after it
+
+CRITICAL: When the tool returns JSON starting with ```json, you MUST copy and include that entire JSON block in your response. The frontend needs this JSON to display job cards."""
 
 
 # =============================================================================
@@ -365,6 +386,136 @@ Analysis Conclusion:
 {ctx.deps.user_transcript}
 
 Use these responses to understand the user's perspective, communication style, and give more personalized, relevant advice."""
+
+    @agent.tool
+    def get_cultural_fit(ctx: RunContext[PersonalityContext]) -> str:
+        """
+        Get cultural fit analysis matching the user's personality to workplace culture types.
+        Use this when the user asks about careers, workplace environments, job fit, or cultural preferences.
+        Returns top matching culture types with fit scores, strengths, and potential challenges.
+        """
+        scores = ctx.deps
+        ocean_scores = {
+            'openness': scores.openness,
+            'conscientiousness': scores.conscientiousness,
+            'extraversion': scores.extraversion,
+            'agreeableness': scores.agreeableness,
+            'neuroticism': scores.neuroticism
+        }
+
+        return get_cultural_fit_analysis(ocean_scores, ctx.deps.derived_metrics)
+
+    @agent.tool
+    def search_matching_jobs(ctx: RunContext[PersonalityContext], role: str, location: str) -> str:
+        """
+        Search for jobs matching the user's role and location.
+        Use this when the user wants to find job opportunities.
+        Returns a JSON block that you MUST include in your response exactly as-is.
+
+        Args:
+            role: Job title or expertise field (e.g., "software engineer", "data scientist", "product manager")
+            location: Location to search in (e.g., "Milan, Italy", "New York, USA", "London, UK")
+        """
+        import json as json_module
+
+        if not settings.JOB_SEARCH_ENABLED or not settings.SERPAPI_KEY:
+            return "Job search is not currently enabled. Please configure SERPAPI_KEY to enable this feature."
+
+        try:
+            # Get the job search service
+            service = get_job_search_service()
+            jobs = service.search_jobs(role, location, num_results=8)
+
+            if not jobs:
+                return f"No jobs found for '{role}' in '{location}'. Try a different search term or broader location."
+
+            # Get user's top culture matches for scoring
+            scores = ctx.deps
+            ocean_scores = {
+                'openness': scores.openness,
+                'conscientiousness': scores.conscientiousness,
+                'extraversion': scores.extraversion,
+                'agreeableness': scores.agreeableness,
+                'neuroticism': scores.neuroticism
+            }
+
+            # Get cultural fit service for scoring
+            from src.services.cultural_fit_service import CulturalFitService
+            fit_service = CulturalFitService()
+            culture_matches = fit_service.get_culture_matches(ocean_scores, ctx.deps.derived_metrics, top_n=3)
+            top_cultures = [m.culture_type for m in culture_matches]
+
+            # Culture keywords mapping for basic analysis
+            culture_keywords = {
+                "Startup Disruptor": ["startup", "fast-paced", "disrupt", "agile", "move fast", "growth"],
+                "Tech Innovator": ["innovation", "cutting-edge", "technology", "r&d", "research", "ai", "ml"],
+                "Corporate Enterprise": ["enterprise", "fortune 500", "established", "global", "corporate"],
+                "Creative Agency": ["creative", "design", "brand", "agency", "portfolio", "artistic"],
+                "Mission-Driven": ["mission", "impact", "social", "nonprofit", "purpose", "sustainability"],
+                "Consulting Firm": ["consulting", "client", "advisory", "strategy", "professional services"],
+                "Remote-First": ["remote", "distributed", "work from home", "flexible", "async"],
+                "Family Business": ["family", "close-knit", "tradition", "values", "community"],
+                "Research & Academic": ["research", "academic", "university", "phd", "science", "publish"],
+                "Healthcare": ["healthcare", "medical", "patient", "hospital", "clinical", "health"],
+                "Government": ["government", "public sector", "federal", "agency", "civil service"],
+                "Entrepreneurial": ["entrepreneurial", "founder", "ownership", "equity", "build"]
+            }
+
+            # Build job results with culture fit scores
+            job_results = []
+            for job in jobs:
+                desc_lower = (job.description or "").lower()
+
+                # Determine culture type based on keywords
+                best_culture = "Tech Innovator"  # default
+                best_score = 0
+                for culture, keywords in culture_keywords.items():
+                    matches = sum(1 for kw in keywords if kw in desc_lower)
+                    if matches > best_score:
+                        best_score = matches
+                        best_culture = culture
+
+                # Calculate fit score based on whether it matches user's top cultures
+                if best_culture in top_cultures:
+                    fit_score = 75 + (top_cultures.index(best_culture) == 0) * 10  # 85 for #1, 75 for #2-3
+                else:
+                    fit_score = 55 + best_score * 5  # 55-70 range
+
+                # Cap at 95
+                fit_score = min(fit_score, 95)
+
+                job_results.append({
+                    "title": job.title,
+                    "company": job.company_name,
+                    "location": job.location,
+                    "culture_fit": fit_score,
+                    "culture_type": best_culture,
+                    "why_fits": f"Matches your {best_culture} culture preference" if best_culture in top_cultures else f"Environment: {best_culture}",
+                    "salary": job.salary or "",
+                    "posted": job.posted_at or "",
+                    "apply_link": job.apply_link or "",
+                    "description_snippet": (job.description or "")[:150] + "..."
+                })
+
+            # Sort by fit score
+            job_results.sort(key=lambda x: x["culture_fit"], reverse=True)
+
+            # Return as JSON block
+            json_output = json_module.dumps({"type": "job_results", "jobs": job_results[:8]}, indent=2)
+
+            return f"""Found {len(job_results)} jobs for "{role}" in "{location}".
+
+IMPORTANT: Include this JSON block in your response:
+
+```json
+{json_output}
+```
+
+Briefly explain why these jobs match the user's personality profile."""
+
+        except Exception as e:
+            logger.error(f"Error searching jobs: {e}")
+            return f"Error searching for jobs: {str(e)}. Please try again."
 
     return agent
 
