@@ -4,10 +4,14 @@ AI Personality Coach Agent using PydanticAI
 Provides conversational AI coaching based on the user's OCEAN personality analysis.
 Uses PydanticAI for structured agent definition with tools and dependencies.
 Supports both synchronous and streaming responses.
+
+Job search uses a hybrid approach:
+- AI writes natural text response about jobs (stays in conversation history)
+- Backend appends JSON data for frontend to render job cards
 """
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, AsyncIterator
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 
 from src.services.llm_provider import get_llm_provider
@@ -56,6 +60,24 @@ class ChatResponse(BaseModel):
     """Response model for the personality coach."""
     response: str
     suggestions: Optional[List[str]] = None
+
+
+# Global storage for last job search results (for backend to append to response)
+_last_job_search_results: Optional[Dict[str, Any]] = None
+
+
+def get_last_job_search_results() -> Optional[Dict[str, Any]]:
+    """Get the last job search results (if any) and clear them."""
+    global _last_job_search_results
+    results = _last_job_search_results
+    _last_job_search_results = None
+    return results
+
+
+def store_job_search_results(results: Dict[str, Any]) -> None:
+    """Store job search results for backend to append to response."""
+    global _last_job_search_results
+    _last_job_search_results = results
 
 
 # =============================================================================
@@ -111,12 +133,11 @@ TRIGGER PHRASES that REQUIRE immediate job search (if role+location known):
 - "I'm a [profession] in [location]" - this IS a job search request
 - "what positions", "what jobs", "career opportunities"
 
-Once you call search_matching_jobs:
-- The tool returns a JSON block - YOU MUST INCLUDE THIS JSON BLOCK EXACTLY AS RETURNED
-- Add a brief intro sentence before the JSON
-- The frontend will render job cards from the JSON
-
-CRITICAL: When the tool returns JSON starting with ```json, you MUST copy and include that entire JSON block in your response. The frontend needs this JSON to display job cards."""
+After calling search_matching_jobs and receiving results:
+- Write a brief, friendly summary of the top jobs found (mention 2-3 top positions by title and company)
+- Explain WHY these jobs match their personality profile based on culture fit
+- The job cards will automatically appear in a sidebar panel
+- You can reference these specific jobs in follow-up questions"""
 
 
 # =============================================================================
@@ -512,18 +533,30 @@ Use these responses to understand the user's perspective, communication style, a
             # Sort by fit score
             job_results.sort(key=lambda x: x["culture_fit"], reverse=True)
 
-            # Return as JSON block
-            json_output = json_module.dumps({"type": "job_results", "jobs": job_results[:8]}, indent=2)
+            # Store job results for backend to append as JSON
+            jobs_data = job_results[:8]
+            store_job_search_results({
+                "type": "job_results",
+                "jobs": jobs_data,
+                "search_role": role,
+                "search_location": location
+            })
 
-            return f"""Found {len(job_results)} jobs for "{role}" in "{location}".
+            # Build a summary for the AI to use in its response
+            top_jobs = jobs_data[:3]
+            job_summaries = []
+            for job in top_jobs:
+                summary = f"- **{job['title']}** at {job['company']} ({job['culture_fit']}% fit, {job['culture_type']})"
+                job_summaries.append(summary)
 
-IMPORTANT: Include this JSON block in your response:
+            return f"""Found {len(jobs_data)} jobs for "{role}" in "{location}".
 
-```json
-{json_output}
-```
+TOP MATCHES (job cards will appear in sidebar):
+{chr(10).join(job_summaries)}
 
-Briefly explain why these jobs match the user's personality profile."""
+The user's top culture matches are: {', '.join(top_cultures[:2])}.
+Write a brief, friendly response mentioning these top jobs and why they fit the user's personality.
+Reference specific job titles and companies so you can discuss them in follow-up questions."""
 
         except Exception as e:
             logger.error(f"Error searching jobs: {e}")
@@ -539,6 +572,10 @@ Briefly explain why these jobs match the user's personality profile."""
 class PersonalityCoachService:
     """
     Service for managing personality coach conversations.
+
+    Uses hybrid approach for job search:
+    - AI writes natural text response (stays in conversation history)
+    - Backend appends JSON data for frontend to render job cards
     """
 
     def __init__(self):
@@ -607,7 +644,18 @@ class PersonalityCoachService:
                 result = await self.agent.run(message, deps=context)
 
             logger.info(f"Personality coach responded to: {message[:50]}...")
-            return result.output
+
+            output = result.output
+
+            # Check if there are job search results to append
+            job_results = get_last_job_search_results()
+            if job_results:
+                import json
+                # Append job JSON to the AI's text response for frontend to parse
+                json_block = json.dumps(job_results, indent=2)
+                output = f"{output}\n\n```json\n{json_block}\n```"
+
+            return output
 
         except Exception as e:
             logger.error(f"Error in personality coach chat: {e}")
@@ -653,14 +701,22 @@ class PersonalityCoachService:
         )
 
         try:
-            # Use run_stream for streaming response (skip message_history for now to debug)
+            # Use run_stream for streaming response
             async with self.agent.run_stream(
                 message,
                 deps=context
             ) as result:
-                # Stream text as deltas (incremental chunks)
+                # Stream text response
                 async for chunk in result.stream_text(delta=True):
                     yield chunk
+
+            # After streaming is complete, check for job search results to append
+            job_results = get_last_job_search_results()
+            if job_results:
+                import json
+                # Yield job JSON as a final chunk for frontend to parse
+                json_block = json.dumps(job_results, indent=2)
+                yield f"\n\n```json\n{json_block}\n```"
 
             logger.info(f"Personality coach streamed response to: {message[:50]}...")
 

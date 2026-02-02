@@ -5143,7 +5143,20 @@ function populateCulturalFitPanel(data) {
  * @returns {object|null} Parsed job results or null if not found
  */
 function extractJobResults(text) {
-    // Look for JSON block with job_results type
+    // First, try to parse the entire text as JSON (structured output from PydanticAI)
+    try {
+        const trimmed = text.trim();
+        if (trimmed.startsWith('{') && trimmed.includes('"type"')) {
+            const data = JSON.parse(trimmed);
+            if (data.type === 'job_results' && Array.isArray(data.jobs)) {
+                return data;
+            }
+        }
+    } catch (e) {
+        // Not a pure JSON response, continue to check for embedded JSON
+    }
+
+    // Fallback: Look for JSON block with job_results type (old format with markdown code blocks)
     const jsonMatch = text.match(/```json\s*(\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*?\})\s*```/);
     if (jsonMatch) {
         try {
@@ -5161,9 +5174,24 @@ function extractJobResults(text) {
 /**
  * Remove the JSON block from the response text for cleaner display
  * @param {string} text - The full AI response text
- * @returns {string} Text with JSON block removed
+ * @returns {string} Text with JSON block removed, or empty if entire response was JSON
  */
 function removeJobResultsJson(text) {
+    // Check if the entire response is a pure JSON job_results (structured output)
+    try {
+        const trimmed = text.trim();
+        if (trimmed.startsWith('{') && trimmed.includes('"type"')) {
+            const data = JSON.parse(trimmed);
+            if (data.type === 'job_results') {
+                // Return the message from the structured output, or empty string
+                return data.message || '';
+            }
+        }
+    } catch (e) {
+        // Not pure JSON, continue
+    }
+
+    // Fallback: remove embedded JSON code blocks
     return text.replace(/```json\s*\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*?\}\s*```/g, '').trim();
 }
 
