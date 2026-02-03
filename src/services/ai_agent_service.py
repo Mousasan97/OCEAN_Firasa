@@ -81,6 +81,7 @@ def store_job_search_results(results: Dict[str, Any]) -> None:
     """Store job search results for backend to append to response."""
     global _last_job_search_results
     _last_job_search_results = results
+    logger.info(f"Stored {len(results.get('jobs', []))} job results for later retrieval")
 
 
 def format_cv_context(career_profile: Optional[Dict[str, Any]]) -> str:
@@ -878,10 +879,12 @@ class PersonalityCoachService:
 
             # After streaming is complete, check for job search results to append
             job_results = get_last_job_search_results()
+            logger.info(f"Job results after streaming: {job_results is not None}, jobs count: {len(job_results.get('jobs', [])) if job_results else 0}")
             if job_results:
                 import json
                 # Yield job JSON as a final chunk for frontend to parse
                 json_block = json.dumps(job_results, indent=2)
+                logger.info(f"Yielding job JSON block ({len(json_block)} chars)")
                 yield f"\n\n```json\n{json_block}\n```"
 
             logger.info(f"Personality coach streamed response to: {message[:50]}...")
