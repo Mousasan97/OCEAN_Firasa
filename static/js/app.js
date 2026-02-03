@@ -5023,10 +5023,17 @@ async function streamChatResponse(message, streamingEl, scrollContainer) {
                         fullResponse += data.content;
                         streamingEl.innerHTML = parseMarkdown(fullResponse);
                         scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                    } else if (data.type === 'job_results') {
+                        // Handle job results sent as separate event (avoids JSON fragmentation)
+                        if (data.data && data.data.jobs && data.data.jobs.length > 0) {
+                            renderJobCards(data.data.jobs);
+                            switchToJobsTab();
+                            showArtifactPanel();
+                        }
                     } else if (data.type === 'done') {
                         streamingEl.classList.remove('streaming');
-                        // Check for job results in the response
-                        const cleanedResponse = processJobResults(fullResponse);
+                        // Clean any remaining JSON blocks from response (fallback)
+                        const cleanedResponse = removeJobResultsJson(fullResponse);
                         streamingEl.innerHTML = parseMarkdown(cleanedResponse);
                         fullResponse = cleanedResponse; // Update for message history
                     } else if (data.type === 'error') {

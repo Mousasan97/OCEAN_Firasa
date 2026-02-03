@@ -877,16 +877,8 @@ class PersonalityCoachService:
                 async for chunk in result.stream_text(delta=True):
                     yield chunk
 
-            # After streaming is complete, check for job search results to append
-            job_results = get_last_job_search_results()
-            logger.info(f"Job results after streaming: {job_results is not None}, jobs count: {len(job_results.get('jobs', [])) if job_results else 0}")
-            if job_results:
-                import json
-                # Yield job JSON as a final chunk for frontend to parse
-                json_block = json.dumps(job_results, indent=2)
-                logger.info(f"Yielding job JSON block ({len(json_block)} chars)")
-                yield f"\n\n```json\n{json_block}\n```"
-
+            # Job results are stored globally and will be retrieved by chat.py
+            # to send as a separate SSE event (avoids large JSON in content stream)
             logger.info(f"Personality coach streamed response to: {message[:50]}...")
 
         except Exception as e:

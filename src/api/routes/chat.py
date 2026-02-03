@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, AsyncGenerator
 
-from src.services.ai_agent_service import get_personality_coach
+from src.services.ai_agent_service import get_personality_coach, get_last_job_search_results
 from src.services.cultural_fit_service import get_cultural_fit_service
 from src.services.cv_parser_service import get_cv_parser_service
 from src.api.schemas.career import CVUploadResponse, CareerProfile
@@ -190,6 +190,14 @@ async def chat_with_coach_stream(request: ChatRequest):
                 # Send chunk as SSE event
                 event_data = json.dumps({"type": "chunk", "content": chunk})
                 yield f"data: {event_data}\n\n"
+
+            # Check for job search results (stored globally by the agent tool)
+            # Send as separate event to avoid JSON fragmentation in production
+            job_results = get_last_job_search_results()
+            if job_results:
+                logger.info(f"Sending {len(job_results.get('jobs', []))} job results via SSE")
+                job_event = json.dumps({"type": "job_results", "data": job_results})
+                yield f"data: {job_event}\n\n"
 
             # Send completion event
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
