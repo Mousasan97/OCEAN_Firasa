@@ -466,6 +466,7 @@ let currentResults = null;
 let radarChart = null;
 let videoThumbnail = null;  // Stores video frame thumbnail for share cards
 let messageHistory = [];     // Shared chat history for floating + fullscreen UIs
+let careerProfile = null;    // CV career profile for enhanced job matching
 
 // Trait configuration with emojis and colors
 const TRAIT_CONFIG = {
@@ -534,6 +535,7 @@ const IMPROVEMENT_TIPS = [
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+    initCVUpload();
 });
 
 function setupEventListeners() {
@@ -4604,8 +4606,380 @@ function buildChatPayload(message) {
         derived_metrics: derivedMetrics,
         interpretations: interpretations,
         user_transcript: userTranscript,
-        message_history: messageHistory.length > 0 ? messageHistory : null
+        message_history: messageHistory.length > 0 ? messageHistory : null,
+        career_profile: careerProfile
     };
+}
+
+// =============================================================================
+// CV Upload Functions
+// =============================================================================
+
+/**
+ * Show a toast notification
+ * @param {string} message - The message to display
+ * @param {string} type - 'success', 'error', 'info'
+ */
+function showNotification(message, type = 'info') {
+    // Remove existing notification
+    const existing = document.querySelector('.cv-toast-notification');
+    if (existing) existing.remove();
+
+    // Create notification element
+    const toast = document.createElement('div');
+    toast.className = `cv-toast-notification cv-toast-${type}`;
+    toast.innerHTML = `
+        <span class="cv-toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+        <span class="cv-toast-message">${message}</span>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    // Auto-remove after 4 seconds (longer for errors)
+    const duration = type === 'error' ? 5000 : 4000;
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+/**
+ * Trigger the CV file input dialog
+ */
+function triggerCVUpload() {
+    const cvInput = document.getElementById('cvFileInput');
+    if (cvInput) {
+        cvInput.click();
+    }
+}
+
+/**
+ * Upload CV and extract career profile
+ * @param {File} file - CV file (PDF or DOCX)
+ * @returns {Promise<Object>} Extracted career profile
+ */
+async function uploadCV(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/upload-cv`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || result.detail || 'CV upload failed');
+        }
+
+        // Store in session
+        careerProfile = result.career_profile;
+
+        // Update UI to show CV loaded
+        updateCVIndicator(careerProfile);
+
+        return careerProfile;
+    } catch (error) {
+        console.error('CV upload error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Update UI to show CV is loaded (now handled by chat card)
+ */
+function updateCVIndicator(profile) {
+    // CV status is now shown in chat as a card, no separate indicator needed
+}
+
+/**
+ * Clear loaded CV
+ */
+function clearCV() {
+    careerProfile = null;
+}
+
+/**
+ * Add a CV card message to chat containers
+ * @param {string} filename - The CV filename
+ * @param {Object} profile - The parsed career profile (null while loading)
+ * @param {boolean} isLoading - Whether still loading
+ * @returns {Object} References to the created elements for updating
+ */
+function addCVMessageToChat(filename, profile = null, isLoading = true) {
+    const floatingContainer = document.getElementById('aiChatMessages');
+    const fullscreenContainer = document.getElementById('fsChatMessages');
+    const chatWindow = document.getElementById('aiChatWindow');
+    const hero = document.getElementById('fsChatHero');
+    const suggestions = document.getElementById('fsSuggestions');
+    const centerContent = document.getElementById('fsCenterContent');
+
+    // Hide hero/suggestions in fullscreen if visible
+    if (hero) hero.style.display = 'none';
+    if (suggestions) suggestions.style.display = 'none';
+    if (centerContent) centerContent.classList.add('chat-active');
+
+    const createCVCard = () => {
+        const card = document.createElement('div');
+        card.className = 'cv-upload-card' + (isLoading ? ' loading' : '');
+
+        if (isLoading) {
+            card.innerHTML = `
+                <div class="cv-card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                </div>
+                <div class="cv-card-content">
+                    <div class="cv-card-filename">${escapeHtml(filename)}</div>
+                    <div class="cv-card-status">
+                        <span class="cv-loading-spinner"></span>
+                        <span>Parsing CV...</span>
+                    </div>
+                </div>
+            `;
+        } else if (profile) {
+            const role = profile.current_role || 'Professional';
+            const location = profile.location || '';
+            const skills = (profile.key_skills || []).slice(0, 3).join(', ');
+            const years = profile.years_experience ? `${profile.years_experience}y exp` : '';
+
+            card.innerHTML = `
+                <div class="cv-card-icon success">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <path d="M9 15l2 2 4-4"/>
+                    </svg>
+                </div>
+                <div class="cv-card-content">
+                    <div class="cv-card-title">${escapeHtml(role)}</div>
+                    <div class="cv-card-meta">
+                        ${location ? `<span>${escapeHtml(location)}</span>` : ''}
+                        ${years ? `<span>${years}</span>` : ''}
+                    </div>
+                    ${skills ? `<div class="cv-card-skills">${escapeHtml(skills)}</div>` : ''}
+                </div>
+            `;
+        }
+        return card;
+    };
+
+    // Create message wrapper
+    const createMessageWrapper = (isFloating) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = isFloating ? 'ai-message user cv-message' : 'fs-message user cv-message';
+        wrapper.appendChild(createCVCard());
+        return wrapper;
+    };
+
+    const elements = {};
+
+    if (floatingContainer) {
+        elements.floating = createMessageWrapper(true);
+        floatingContainer.appendChild(elements.floating);
+        floatingContainer.classList.add('has-messages');
+        if (chatWindow) chatWindow.classList.add('has-messages');
+        floatingContainer.scrollTop = floatingContainer.scrollHeight;
+    }
+
+    if (fullscreenContainer) {
+        elements.fullscreen = createMessageWrapper(false);
+        fullscreenContainer.appendChild(elements.fullscreen);
+        fullscreenContainer.scrollTop = fullscreenContainer.scrollHeight;
+    }
+
+    return elements;
+}
+
+/**
+ * Update CV card with parsed profile
+ */
+function updateCVCard(elements, profile) {
+    const role = profile.current_role || 'Professional';
+    const location = profile.location || '';
+    const skills = (profile.key_skills || []).slice(0, 3).join(', ');
+    const years = profile.years_experience ? `${profile.years_experience}y exp` : '';
+
+    const newContent = `
+        <div class="cv-card-icon success">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <path d="M9 15l2 2 4-4"/>
+            </svg>
+        </div>
+        <div class="cv-card-content">
+            <div class="cv-card-title">${escapeHtml(role)}</div>
+            <div class="cv-card-meta">
+                ${location ? `<span>${escapeHtml(location)}</span>` : ''}
+                ${years ? `<span>${years}</span>` : ''}
+            </div>
+            ${skills ? `<div class="cv-card-skills">${escapeHtml(skills)}</div>` : ''}
+        </div>
+    `;
+
+    [elements.floating, elements.fullscreen].forEach(el => {
+        if (el) {
+            const card = el.querySelector('.cv-upload-card');
+            if (card) {
+                card.classList.remove('loading');
+                card.innerHTML = newContent;
+            }
+        }
+    });
+}
+
+/**
+ * Add AI response to chat after CV upload
+ */
+async function addCVAcknowledgment(profile) {
+    const floatingContainer = document.getElementById('aiChatMessages');
+    const fullscreenContainer = document.getElementById('fsChatMessages');
+
+    // Create streaming elements for AI response
+    const createStreamingEl = (isFloating) => {
+        const el = document.createElement('div');
+        el.className = (isFloating ? 'ai-message' : 'fs-message') + ' assistant streaming';
+        return el;
+    };
+
+    const floatingStreamEl = floatingContainer ? createStreamingEl(true) : null;
+    const fullscreenStreamEl = fullscreenContainer ? createStreamingEl(false) : null;
+
+    if (floatingStreamEl) {
+        floatingContainer.appendChild(floatingStreamEl);
+        floatingContainer.scrollTop = floatingContainer.scrollHeight;
+    }
+    if (fullscreenStreamEl) {
+        fullscreenContainer.appendChild(fullscreenStreamEl);
+        fullscreenContainer.scrollTop = fullscreenContainer.scrollHeight;
+    }
+
+    // Build acknowledgment message based on profile
+    const role = profile.current_role || profile.target_role || 'your profile';
+    const location = profile.location || '';
+    const skills = (profile.key_skills || []).slice(0, 5);
+    const years = profile.years_experience;
+
+    let message = `I've loaded your CV! `;
+    if (profile.current_role) {
+        message += `I see you're a **${role}**`;
+        if (location) message += ` based in **${location}**`;
+        message += `. `;
+    }
+    if (years) {
+        message += `With **${years} years** of experience`;
+        if (skills.length > 0) {
+            message += ` and skills in ${skills.slice(0, 3).join(', ')}`;
+        }
+        message += `. `;
+    }
+    message += `\n\nI can now help you find jobs that match your profile and personality. Just say **"find jobs for me"** or click **Job matching** to get started!`;
+
+    // Simulate typing effect
+    const words = message.split(' ');
+    let displayedText = '';
+
+    for (let i = 0; i < words.length; i++) {
+        displayedText += (i === 0 ? '' : ' ') + words[i];
+        const html = parseMarkdown(displayedText);
+
+        if (floatingStreamEl) floatingStreamEl.innerHTML = html;
+        if (fullscreenStreamEl) fullscreenStreamEl.innerHTML = html;
+
+        await new Promise(r => setTimeout(r, 20)); // 20ms per word
+    }
+
+    // Remove streaming class
+    if (floatingStreamEl) floatingStreamEl.classList.remove('streaming');
+    if (fullscreenStreamEl) fullscreenStreamEl.classList.remove('streaming');
+
+    // Add to message history
+    messageHistory.push({ role: 'assistant', content: message });
+
+    // Scroll to bottom
+    if (floatingContainer) floatingContainer.scrollTop = floatingContainer.scrollHeight;
+    if (fullscreenContainer) fullscreenContainer.scrollTop = fullscreenContainer.scrollHeight;
+}
+
+/**
+ * Handle CV file selection
+ */
+function initCVUpload() {
+    const cvInput = document.getElementById('cvFileInput');
+    if (!cvInput) return;
+
+    cvInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['pdf', 'docx', 'doc'].includes(ext)) {
+            showNotification('Please upload a PDF or Word document', 'error');
+            return;
+        }
+
+        // Check if we have personality data
+        if (!currentResults || !currentResults.predictions) {
+            showNotification('Please complete a personality analysis first', 'error');
+            return;
+        }
+
+        // Add CV card to chat (loading state)
+        const cvElements = addCVMessageToChat(file.name, null, true);
+
+        try {
+            const profile = await uploadCV(file);
+
+            // Update CV card with parsed data
+            updateCVCard(cvElements, profile);
+
+            // Add AI acknowledgment message
+            await addCVAcknowledgment(profile);
+
+        } catch (error) {
+            // Update card to show error
+            [cvElements.floating, cvElements.fullscreen].forEach(el => {
+                if (el) {
+                    const card = el.querySelector('.cv-upload-card');
+                    if (card) {
+                        card.classList.remove('loading');
+                        card.classList.add('error');
+                        card.innerHTML = `
+                            <div class="cv-card-icon error">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="15" y1="9" x2="9" y2="15"/>
+                                    <line x1="9" y1="9" x2="15" y2="15"/>
+                                </svg>
+                            </div>
+                            <div class="cv-card-content">
+                                <div class="cv-card-title">Upload Failed</div>
+                                <div class="cv-card-error">${escapeHtml(error.message || 'Failed to parse CV')}</div>
+                            </div>
+                        `;
+                    }
+                }
+            });
+            showNotification(error.message || 'Failed to parse CV', 'error');
+        }
+
+        // Reset input
+        e.target.value = '';
+    });
 }
 
 /**
@@ -5540,10 +5914,29 @@ function initFullScreenChat() {
     const quickActionsBtn = document.getElementById('fsQuickActionsBtn');
     const quickActionsMenu = document.getElementById('fsQuickActionsMenu');
 
+    // Make close function globally accessible
+    window.closeQuickActionsMenu = function() {
+        if (quickActionsBtn) quickActionsBtn.classList.remove('active');
+        if (quickActionsMenu) quickActionsMenu.classList.remove('show');
+    };
+
+    function positionQuickActionsMenu() {
+        if (!quickActionsBtn || !quickActionsMenu) return;
+        const btnRect = quickActionsBtn.getBoundingClientRect();
+        const menuHeight = quickActionsMenu.offsetHeight || 300;
+        // Position above the button, aligned to left edge
+        quickActionsMenu.style.left = btnRect.left + 'px';
+        quickActionsMenu.style.bottom = (window.innerHeight - btnRect.top + 8) + 'px';
+    }
+
     quickActionsBtn?.addEventListener('click', (e) => {
         e.stopPropagation();
+        const isOpening = !quickActionsMenu.classList.contains('show');
         quickActionsBtn.classList.toggle('active');
         quickActionsMenu.classList.toggle('show');
+        if (isOpening) {
+            positionQuickActionsMenu();
+        }
     });
 
     // Close menu when clicking outside

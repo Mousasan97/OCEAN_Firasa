@@ -7552,10 +7552,9 @@ body.results-view .upload-section {
 }
 
 .fs-quick-actions-menu {
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    margin-bottom: 8px;
+    position: fixed;
+    bottom: auto;
+    left: auto;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
@@ -7565,7 +7564,7 @@ body.results-view .upload-section {
     visibility: hidden;
     transform: translateY(10px);
     transition: all 0.2s ease;
-    z-index: 1000;
+    z-index: 10000;
 }
 
 .fs-quick-actions-menu.show {
@@ -7613,6 +7612,263 @@ body.results-view .upload-section {
 
 .fs-quick-menu-item:hover svg {
     color: #ea580c;
+}
+
+/* Quick Actions Menu Divider */
+.fs-quick-menu-divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 8px 0;
+}
+
+/* CV Upload button in Quick Actions */
+.fs-quick-menu-upload {
+    border-top: none;
+}
+
+.fs-quick-menu-upload svg {
+    color: #10b981;
+}
+
+.fs-quick-menu-upload:hover {
+    background: rgba(16, 185, 129, 0.08);
+    color: #10b981;
+}
+
+.fs-quick-menu-upload:hover svg {
+    color: #10b981;
+}
+
+/* CV Loaded Indicator */
+.cv-loaded-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 16px;
+    font-size: 12px;
+    color: #10b981;
+    margin-right: 8px;
+}
+
+.cv-loaded-indicator svg {
+    flex-shrink: 0;
+}
+
+.cv-loaded-indicator .cv-role {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cv-clear-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+
+.cv-clear-btn:hover {
+    opacity: 1;
+}
+
+/* Toast Notification for CV Upload */
+.cv-toast-notification {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    padding: 12px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 10001;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.cv-toast-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.cv-toast-success {
+    background: #10b981;
+    color: #fff;
+}
+
+.cv-toast-error {
+    background: #ef4444;
+    color: #fff;
+}
+
+.cv-toast-info {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.cv-toast-icon {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.cv-toast-message {
+    max-width: 300px;
+}
+
+/* CV Upload Card in Chat */
+.cv-message {
+    max-width: 85%;
+}
+
+.cv-upload-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 12px;
+    min-width: 220px;
+    max-width: 320px;
+}
+
+.cv-upload-card.loading {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-color: rgba(59, 130, 246, 0.25);
+}
+
+.cv-upload-card.error {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+.cv-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(16, 185, 129, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #10b981;
+}
+
+.cv-upload-card.loading .cv-card-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.cv-card-icon.success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.cv-card-icon.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.cv-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.cv-card-filename {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.cv-card-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #3b82f6;
+}
+
+.cv-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #047857;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cv-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #4b5563;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.cv-card-meta span:not(:last-child)::after {
+    content: "•";
+    margin-left: 8px;
+    color: #9ca3af;
+}
+
+.cv-card-skills {
+    font-size: 11px;
+    color: #0891b2;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cv-card-error {
+    font-size: 12px;
+    color: #ef4444;
+}
+
+/* CV Loading Spinner */
+.cv-loading-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(59, 130, 246, 0.2);
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: cv-spin 0.8s linear infinite;
+}
+
+@keyframes cv-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Light mode adjustments for CV card */
+@media (prefers-color-scheme: light) {
+    .cv-upload-card {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%);
+    }
+    .cv-upload-card.loading {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%);
+    }
 }
 
 .fs-send-btn {

@@ -3,20 +3,28 @@ Chat routes for AI Personality Coach
 
 Provides API endpoints for conversational AI coaching based on personality analysis.
 Supports both regular and streaming (SSE) responses.
+Includes CV upload for enhanced job matching.
 """
 import json
-from fastapi import APIRouter, HTTPException, status, Request
+from pathlib import Path
+from fastapi import APIRouter, HTTPException, status, Request, UploadFile, File
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, AsyncGenerator
 
 from src.services.ai_agent_service import get_personality_coach
 from src.services.cultural_fit_service import get_cultural_fit_service
+from src.services.cv_parser_service import get_cv_parser_service
+from src.api.schemas.career import CVUploadResponse, CareerProfile
 from src.utils.logger import get_logger
 from src.utils.config import settings
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/chat", tags=["Chat"])
+
+# CV upload constraints
+ALLOWED_CV_EXTENSIONS = ['.pdf', '.docx', '.doc']
+MAX_CV_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 # =============================================================================
@@ -51,6 +59,10 @@ class ChatRequest(BaseModel):
     message_history: Optional[List[ChatMessage]] = Field(
         None,
         description="Optional previous messages for context"
+    )
+    career_profile: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Career profile from uploaded CV for enhanced job matching"
     )
 
     class Config:
@@ -116,7 +128,8 @@ async def chat_with_coach(request: ChatRequest):
             derived_metrics=request.derived_metrics,
             interpretations=request.interpretations,
             user_transcript=request.user_transcript,
-            message_history=history
+            message_history=history,
+            career_profile=request.career_profile
         )
 
         return ChatResponse(response=response, success=True)
@@ -171,7 +184,8 @@ async def chat_with_coach_stream(request: ChatRequest):
                 derived_metrics=request.derived_metrics,
                 interpretations=request.interpretations,
                 user_transcript=request.user_transcript,
-                message_history=history
+                message_history=history,
+                career_profile=request.career_profile
             ):
                 # Send chunk as SSE event
                 event_data = json.dumps({"type": "chunk", "content": chunk})
@@ -264,4 +278,70 @@ async def get_cultural_fit(request: CulturalFitRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to compute cultural fit: {str(e)}"
+        )
+
+
+# =============================================================================
+# CV Upload Endpoint
+# =============================================================================
+
+@router.post("/upload-cv", response_model=CVUploadResponse)
+async def upload_cv(
+    file: UploadFile = File(..., description="CV file (PDF or DOCX)")
+):
+    """
+    Upload a CV and extract career information.
+
+    The extracted profile can be passed with chat requests to enhance
+    job search and career coaching advice.
+
+    Supported formats: PDF, DOCX, DOC
+    Max file size: 10MB
+
+    Returns:
+        CVUploadResponse with extracted CareerProfile
+    """
+    # Validate filename
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename required")
+
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_CV_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed: {', '.join(ALLOWED_CV_EXTENSIONS)}"
+        )
+
+    # Read content
+    content = await file.read()
+
+    # Check size
+    if len(content) > MAX_CV_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large ({len(content) // 1024 // 1024}MB). Maximum size: {MAX_CV_SIZE // 1024 // 1024}MB"
+        )
+
+    try:
+        parser = get_cv_parser_service()
+        profile = await parser.parse_cv(content, file.filename)
+
+        logger.info(f"Successfully parsed CV: {file.filename} -> role={profile.current_role}, location={profile.location}")
+
+        return CVUploadResponse(
+            success=True,
+            career_profile=profile
+        )
+
+    except ValueError as e:
+        logger.warning(f"CV parsing failed: {e}")
+        return CVUploadResponse(
+            success=False,
+            error=str(e)
+        )
+    except Exception as e:
+        logger.error(f"CV upload error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process CV: {str(e)}"
         )

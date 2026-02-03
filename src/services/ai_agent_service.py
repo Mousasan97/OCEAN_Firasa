@@ -55,6 +55,9 @@ class PersonalityContext:
     # Conversation history
     message_history: Optional[List[Dict[str, str]]] = None
 
+    # Career profile from CV upload (if available)
+    career_profile: Optional[Dict[str, Any]] = None
+
 
 class ChatResponse(BaseModel):
     """Response model for the personality coach."""
@@ -80,11 +83,56 @@ def store_job_search_results(results: Dict[str, Any]) -> None:
     _last_job_search_results = results
 
 
+def format_cv_context(career_profile: Optional[Dict[str, Any]]) -> str:
+    """
+    Format CV data as a context string to prepend to user messages.
+    Returns empty string if no CV data.
+    """
+    if not career_profile:
+        return ""
+
+    parts = []
+    role = career_profile.get("current_role") or career_profile.get("target_role")
+    location = career_profile.get("location")
+    years = career_profile.get("years_experience")
+    skills = career_profile.get("key_skills", [])[:5]  # Top 5 skills
+
+    if role:
+        parts.append(role)
+    if location:
+        parts.append(location)
+    if years:
+        parts.append(f"{years}y exp")
+    if skills:
+        parts.append(f"Skills: {', '.join(skills)}")
+
+    if parts:
+        return f"[CV: {' | '.join(parts)}]\n\n"
+    return ""
+
+
 # =============================================================================
 # System Prompts
 # =============================================================================
 
 PERSONALITY_COACH_SYSTEM_PROMPT = """You are Firasa, an empathetic personality coach for OCEAN personality analysis.
+
+## CRITICAL RULE - JOB SEARCH WITH CV DATA
+**WHEN YOU SEE [CV: ...] AT THE START OF A MESSAGE AND THE USER ASKS ABOUT JOBS/MATCHING/CAREERS:**
+1. YOU MUST IMMEDIATELY CALL search_matching_jobs - DO NOT ASK QUESTIONS
+2. Extract a GENERIC job title from the CV role:
+   - "Senior Data Engineer" → "Data Engineer"
+   - "AI Research Engineer-Sustainable Energy" → "AI Engineer"
+   - "Software Developer - Payment Systems" → "Software Developer"
+3. Simplify the location: "Milan, Italy" → "Italy", "Bolzano-Italy" → "Italy"
+4. Call search_matching_jobs(role="Data Engineer", location="Italy")
+
+**TRIGGER PHRASES (when CV data is present, CALL THE TOOL):**
+- "find jobs" / "job matching" / "find matching jobs"
+- "match my personality" / "jobs that match"
+- "career opportunities" / "job search"
+
+**DO NOT ASK** for role or location if [CV: ...] data is visible - USE IT.
 
 ## Response Style
 - Be CONCISE: 2-3 short paragraphs maximum
@@ -121,21 +169,10 @@ When asked about career matches, workplace fit, or cultural preferences:
 - Culture types include: Startup Disruptor, Tech Innovator, Corporate Enterprise, Creative Agency, Mission-Driven, Consulting, Remote/Distributed, Family Business, Research/Academic, Healthcare, Government, and Entrepreneurial
 - Focus on the top 2-3 matches and explain WHY they fit based on the user's personality dimensions
 
-## Job Search & Matching
-CRITICAL: You MUST remember role and location from previous messages in the conversation!
-
-When the user wants to find jobs:
-1. If BOTH role AND location are in the CURRENT message → call search_matching_jobs immediately
-2. If role is in current message BUT location was mentioned EARLIER → use the earlier location and search immediately
-3. If location is in current message BUT role was mentioned EARLIER → use the earlier role and search immediately
-4. If you're missing either role or location (not mentioned anywhere in conversation) → ask ONLY for the missing piece
-
-EXAMPLES of remembering context:
-- User says "developer in Doha" → search immediately (both provided)
-- User then says "backend developer" → search for "backend developer" in "Doha" (remember Doha from before!)
-- User says "I'm in Milan", then later "software engineer" → search for "software engineer" in "Milan"
-
-NEVER ask for information the user already provided earlier in the conversation!
+## Job Search (NO CV data)
+If user asks about jobs but NO [CV: ...] data is shown:
+- If user provides role + location → search immediately
+- If missing role or location → ask ONLY for the missing piece
 
 After calling search_matching_jobs:
 - Write a brief, friendly summary of the top jobs found (mention 2-3 top positions by title and company)
@@ -439,23 +476,80 @@ Use these responses to understand the user's perspective, communication style, a
         return get_cultural_fit_analysis(ocean_scores, ctx.deps.derived_metrics)
 
     @agent.tool
+    def get_career_profile(ctx: RunContext[PersonalityContext]) -> str:
+        """
+        Get the user's career profile from their uploaded CV.
+        Returns role, skills, experience, industries, and location.
+        Use this when discussing careers, job search, or giving professional advice.
+        """
+        if not ctx.deps.career_profile:
+            return "No CV has been uploaded. The user can upload their CV for personalized career advice and job matching."
+
+        cp = ctx.deps.career_profile
+        parts = ["User's Career Profile (from CV):"]
+
+        if cp.get("current_role"):
+            parts.append(f"- Current Role: {cp['current_role']}")
+        if cp.get("target_role"):
+            parts.append(f"- Target Role: {cp['target_role']}")
+        if cp.get("years_experience"):
+            parts.append(f"- Experience: {cp['years_experience']} years")
+        if cp.get("location"):
+            parts.append(f"- Location: {cp['location']}")
+        if cp.get("key_skills"):
+            skills = cp['key_skills'][:10]  # Max 10 skills
+            parts.append(f"- Key Skills: {', '.join(skills)}")
+        if cp.get("industries"):
+            parts.append(f"- Industries: {', '.join(cp['industries'])}")
+        if cp.get("education_level"):
+            parts.append(f"- Education: {cp['education_level']}")
+        if cp.get("certifications"):
+            parts.append(f"- Certifications: {', '.join(cp['certifications'])}")
+        if cp.get("summary"):
+            parts.append(f"\nSummary: {cp['summary']}")
+
+        return "\n".join(parts)
+
+    @agent.tool
     def search_matching_jobs(ctx: RunContext[PersonalityContext], role: str, location: str) -> str:
         """
-        Search for real job listings matching the user's role and location.
-        CALL THIS IMMEDIATELY when user mentions job search + provides role + location.
-        Examples triggering this tool:
-        - "I'm a civil engineer in Doha" → call with role="civil engineer", location="Doha"
-        - "find me software jobs in London" → call with role="software engineer", location="London"
-        Returns a JSON block that you MUST include in your response exactly as-is.
+        Search for real job listings. CALL THIS TOOL when user asks about jobs/matching.
+
+        WHEN CV DATA EXISTS (message starts with [CV: ...]):
+        - Extract GENERIC job title: "Senior Data Engineer" → "Data Engineer"
+        - Extract location: "Milan, Italy" → "Italy"
+        - Call immediately, DO NOT ask questions
+
+        Examples:
+        - CV shows "Senior Data Engineer, Milan, Italy" + user says "find jobs" → role="Data Engineer", location="Italy"
+        - CV shows "Software Developer, London" + user says "match my personality" → role="Software Developer", location="UK"
+        - No CV, user says "software jobs in Berlin" → role="Software Engineer", location="Berlin"
 
         Args:
-            role: Job title or expertise field (e.g., "civil engineer", "software engineer", "data scientist")
-            location: City or region to search in (e.g., "Doha", "Milan, Italy", "New York, USA")
+            role: Generic job title extracted from CV or user input
+            location: Country or city from CV or user input
         """
         import json as json_module
 
         if not settings.JOB_SEARCH_ENABLED or not settings.SERPAPI_KEY:
             return "Job search is not currently enabled. Please configure SERPAPI_KEY to enable this feature."
+
+        # Auto-fill from CV if available and "auto" is specified
+        career_profile = ctx.deps.career_profile
+        original_role = role
+        original_location = location
+
+        if career_profile:
+            if role == "auto" or not role:
+                role = career_profile.get("current_role") or career_profile.get("target_role")
+            if location == "auto" or not location:
+                location = career_profile.get("location")
+
+        # Validate we have required fields
+        if not role:
+            return "Please specify a job role/title to search for, or upload your CV first."
+        if not location:
+            return "Please specify a location to search in, or upload your CV with your location."
 
         try:
             # Get the job search service
@@ -511,14 +605,51 @@ Use these responses to understand the user's perspective, communication style, a
                         best_score = matches
                         best_culture = culture
 
-                # Calculate fit score based on whether it matches user's top cultures
+                # Calculate base fit score based on whether it matches user's top cultures
                 if best_culture in top_cultures:
                     fit_score = 75 + (top_cultures.index(best_culture) == 0) * 10  # 85 for #1, 75 for #2-3
                 else:
                     fit_score = 55 + best_score * 5  # 55-70 range
 
-                # Cap at 95
-                fit_score = min(fit_score, 95)
+                # Enhanced scoring with CV data
+                skills_matched = 0
+                experience_bonus = 0
+
+                if career_profile:
+                    # Skills matching bonus
+                    user_skills = career_profile.get("key_skills", [])
+                    if user_skills:
+                        user_skills_lower = set(s.lower() for s in user_skills)
+                        job_text = desc_lower + " " + " ".join((job.qualifications or [])).lower()
+                        matching_skills = sum(1 for skill in user_skills_lower if skill in job_text)
+                        skills_matched = matching_skills
+                        fit_score += min(matching_skills * 3, 15)  # Max +15 points for skills
+
+                    # Experience level matching bonus
+                    years_exp = career_profile.get("years_experience")
+                    if years_exp is not None:
+                        # Check seniority alignment
+                        if years_exp >= 7 and any(w in desc_lower for w in ["senior", "lead", "principal", "staff", "director", "manager"]):
+                            experience_bonus = 5
+                        elif 3 <= years_exp < 7 and any(w in desc_lower for w in ["mid", "intermediate", "experienced"]):
+                            experience_bonus = 5
+                        elif years_exp < 3 and any(w in desc_lower for w in ["junior", "entry", "graduate", "associate", "trainee"]):
+                            experience_bonus = 5
+                        fit_score += experience_bonus
+
+                # Cap at 98
+                fit_score = min(fit_score, 98)
+
+                # Build why_fits message
+                why_fits_parts = []
+                if best_culture in top_cultures:
+                    why_fits_parts.append(f"Matches your {best_culture} culture preference")
+                else:
+                    why_fits_parts.append(f"Environment: {best_culture}")
+                if skills_matched > 0:
+                    why_fits_parts.append(f"{skills_matched} skills match")
+                if experience_bonus > 0:
+                    why_fits_parts.append("experience level fits")
 
                 job_results.append({
                     "title": job.title,
@@ -526,7 +657,8 @@ Use these responses to understand the user's perspective, communication style, a
                     "location": job.location,
                     "culture_fit": fit_score,
                     "culture_type": best_culture,
-                    "why_fits": f"Matches your {best_culture} culture preference" if best_culture in top_cultures else f"Environment: {best_culture}",
+                    "why_fits": " | ".join(why_fits_parts),
+                    "skills_matched": skills_matched,
                     "salary": job.salary or "",
                     "posted": job.posted_at or "",
                     "apply_link": job.apply_link or "",
@@ -599,7 +731,8 @@ class PersonalityCoachService:
         interpretations: Optional[Dict[str, Any]] = None,
         user_transcript: Optional[str] = None,
         full_report: Optional[Dict[str, Any]] = None,
-        message_history: Optional[List[Dict[str, str]]] = None
+        message_history: Optional[List[Dict[str, str]]] = None,
+        career_profile: Optional[Dict[str, Any]] = None
     ) -> str:
         """
         Send a message to the personality coach and get a response.
@@ -612,6 +745,7 @@ class PersonalityCoachService:
             user_transcript: Optional user's spoken responses from video recording
             full_report: Optional full analysis report
             message_history: Optional list of previous messages [{'role': 'user'/'assistant', 'content': '...'}]
+            career_profile: Optional career profile from uploaded CV
 
         Returns:
             Assistant's response string
@@ -627,8 +761,13 @@ class PersonalityCoachService:
             interpretations=interpretations,
             user_transcript=user_transcript,
             full_report=full_report,
-            message_history=message_history
+            message_history=message_history,
+            career_profile=career_profile
         )
+
+        # Prepend CV context to message if available
+        cv_context = format_cv_context(career_profile)
+        enhanced_message = cv_context + message
 
         try:
             # Build message history for multi-turn conversation
@@ -642,9 +781,9 @@ class PersonalityCoachService:
                     else:
                         messages.append(ModelResponse(parts=[TextPart(content=msg['content'])]))
 
-                result = await self.agent.run(message, deps=context, message_history=messages)
+                result = await self.agent.run(enhanced_message, deps=context, message_history=messages)
             else:
-                result = await self.agent.run(message, deps=context)
+                result = await self.agent.run(enhanced_message, deps=context)
 
             logger.info(f"Personality coach responded to: {message[:50]}...")
 
@@ -672,7 +811,8 @@ class PersonalityCoachService:
         interpretations: Optional[Dict[str, Any]] = None,
         user_transcript: Optional[str] = None,
         full_report: Optional[Dict[str, Any]] = None,
-        message_history: Optional[List[Dict[str, str]]] = None
+        message_history: Optional[List[Dict[str, str]]] = None,
+        career_profile: Optional[Dict[str, Any]] = None
     ) -> AsyncIterator[str]:
         """
         Send a message to the personality coach and stream the response.
@@ -685,6 +825,7 @@ class PersonalityCoachService:
             user_transcript: Optional user's spoken responses from video recording
             full_report: Optional full analysis report
             message_history: Optional list of previous messages [{'role': 'user'/'assistant', 'content': '...'}]
+            career_profile: Optional career profile from uploaded CV
 
         Yields:
             Text chunks as they are generated (deltas)
@@ -700,8 +841,17 @@ class PersonalityCoachService:
             interpretations=interpretations,
             user_transcript=user_transcript,
             full_report=full_report,
-            message_history=message_history
+            message_history=message_history,
+            career_profile=career_profile
         )
+
+        # Prepend CV context to message if available
+        cv_context = format_cv_context(career_profile)
+        enhanced_message = cv_context + message
+
+        if cv_context:
+            logger.info(f"CV context prepended: {cv_context.strip()}")
+            logger.info(f"Enhanced message for agent: {enhanced_message[:300]}...")
 
         try:
             # Build message history for multi-turn conversation
@@ -718,7 +868,7 @@ class PersonalityCoachService:
 
             # Use run_stream for streaming response
             async with self.agent.run_stream(
-                message,
+                enhanced_message,
                 deps=context,
                 message_history=messages
             ) as result:
