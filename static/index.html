@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OCEAN Personality Analysis</title>
-    <link rel="stylesheet" href="/static/css/style.css?v=116">
+    <link rel="stylesheet" href="/static/css/style.css?v=117">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -1319,11 +1319,42 @@
                         <div class="fs-chat-input-box">
                             <textarea class="fs-chat-textarea" id="fsChatInput" placeholder="Type your request..." rows="1"></textarea>
                             <div class="fs-input-footer">
-                                <button class="fs-attach-btn" title="Attach file">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                                    </svg>
-                                </button>
+                                <!-- Quick Actions Menu Button (replaces attach) -->
+                                <div class="fs-quick-actions-wrapper">
+                                    <button class="fs-quick-actions-btn" id="fsQuickActionsBtn" title="Quick actions">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                    </button>
+                                    <!-- Dropdown Menu -->
+                                    <div class="fs-quick-actions-menu" id="fsQuickActionsMenu">
+                                        <div class="fs-quick-menu-header">Quick Actions</div>
+                                        <button class="fs-quick-menu-item" data-prompt="What are my strongest personality traits?">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                            <span>My strengths</span>
+                                        </button>
+                                        <button class="fs-quick-menu-item" data-prompt="How can I improve my weakest trait?">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                            <span>Improve weakest trait</span>
+                                        </button>
+                                        <button class="fs-quick-menu-item" data-prompt="What workplace cultures and environments best match my personality?">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                                            <span>Cultural fit</span>
+                                        </button>
+                                        <button class="fs-quick-menu-item" data-prompt="How does my personality affect my relationships?">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                            <span>Relationship insights</span>
+                                        </button>
+                                        <button class="fs-quick-menu-item" data-prompt="Give me a daily habit plan based on my personality">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                            <span>Daily habit plan</span>
+                                        </button>
+                                        <button class="fs-quick-menu-item" data-prompt="What are my stress triggers and how can I manage them?">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                            <span>Stress management</span>
+                                        </button>
+                                    </div>
+                                </div>
                                 <button class="fs-send-btn" id="fsSendBtn" aria-label="Send message">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -1578,6 +1609,6 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js?v=100"></script>
+    <script src="/static/js/app.js?v=101"></script>
 </body>
 </html>

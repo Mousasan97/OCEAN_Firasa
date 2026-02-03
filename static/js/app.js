@@ -5536,6 +5536,41 @@ function initFullScreenChat() {
         }
     });
 
+    // Quick Actions Menu
+    const quickActionsBtn = document.getElementById('fsQuickActionsBtn');
+    const quickActionsMenu = document.getElementById('fsQuickActionsMenu');
+
+    quickActionsBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        quickActionsBtn.classList.toggle('active');
+        quickActionsMenu.classList.toggle('show');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (quickActionsMenu?.classList.contains('show') &&
+            !quickActionsMenu.contains(e.target) &&
+            !quickActionsBtn.contains(e.target)) {
+            quickActionsBtn.classList.remove('active');
+            quickActionsMenu.classList.remove('show');
+        }
+    });
+
+    // Quick menu item clicks
+    quickActionsMenu?.addEventListener('click', (e) => {
+        const item = e.target.closest('.fs-quick-menu-item');
+        if (item) {
+            const prompt = item.getAttribute('data-prompt');
+            if (prompt) {
+                // Close menu
+                quickActionsBtn.classList.remove('active');
+                quickActionsMenu.classList.remove('show');
+                // Send the message
+                sendFullScreenMessage(prompt);
+            }
+        }
+    });
+
     // Artifact panel close button
     artifactClose?.addEventListener('click', hideArtifactPanel);
 

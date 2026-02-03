@@ -7521,6 +7521,100 @@ body.results-view .upload-section {
     background: #f0f0f0;
 }
 
+/* --- Quick Actions Menu --- */
+.fs-quick-actions-wrapper {
+    position: relative;
+}
+
+.fs-quick-actions-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.fs-quick-actions-btn:hover {
+    color: #ea580c;
+    background: rgba(234, 88, 12, 0.1);
+}
+
+.fs-quick-actions-btn.active {
+    color: #ea580c;
+    background: rgba(234, 88, 12, 0.15);
+    transform: rotate(45deg);
+}
+
+.fs-quick-actions-menu {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    min-width: 220px;
+    padding: 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.fs-quick-actions-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.fs-quick-menu-header {
+    padding: 8px 16px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 4px;
+}
+
+.fs-quick-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.fs-quick-menu-item:hover {
+    background: #f8f8f8;
+    color: #ea580c;
+}
+
+.fs-quick-menu-item svg {
+    flex-shrink: 0;
+    color: #888;
+    transition: color 0.15s ease;
+}
+
+.fs-quick-menu-item:hover svg {
+    color: #ea580c;
+}
+
 .fs-send-btn {
     width: 40px;
     height: 40px;
