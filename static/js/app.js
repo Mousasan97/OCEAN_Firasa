@@ -672,6 +672,19 @@ function captureVideoThumbnail(video) {
     }
 }
 
+// Go back to upload section from results or any other view
+function goBackToUpload() {
+    // Show upload section
+    const uploadSection = document.getElementById('uploadSection');
+    if (uploadSection) uploadSection.style.display = 'block';
+
+    // Reset everything
+    resetUpload();
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function resetUpload() {
     selectedFile = null;
     currentResults = null;

@@ -122,22 +122,25 @@ When asked about career matches, workplace fit, or cultural preferences:
 - Focus on the top 2-3 matches and explain WHY they fit based on the user's personality dimensions
 
 ## Job Search & Matching
-IMPORTANT: When the user mentions wanting to find jobs, look for work, or mentions their profession with a location:
-1. If BOTH role AND location are provided (e.g., "civil engineer in Doha", "software developer in London") → IMMEDIATELY call search_matching_jobs. Do NOT ask for confirmation or offer options - just search.
-2. If only role is provided → Ask ONLY for location, then search immediately
-3. If only location is provided → Ask ONLY for role/profession, then search immediately
-4. If neither is provided → Ask for both in one question
+CRITICAL: You MUST remember role and location from previous messages in the conversation!
 
-TRIGGER PHRASES that REQUIRE immediate job search (if role+location known):
-- "find jobs", "look for jobs", "job search", "job opportunities"
-- "I'm a [profession] in [location]" - this IS a job search request
-- "what positions", "what jobs", "career opportunities"
+When the user wants to find jobs:
+1. If BOTH role AND location are in the CURRENT message → call search_matching_jobs immediately
+2. If role is in current message BUT location was mentioned EARLIER → use the earlier location and search immediately
+3. If location is in current message BUT role was mentioned EARLIER → use the earlier role and search immediately
+4. If you're missing either role or location (not mentioned anywhere in conversation) → ask ONLY for the missing piece
 
-After calling search_matching_jobs and receiving results:
+EXAMPLES of remembering context:
+- User says "developer in Doha" → search immediately (both provided)
+- User then says "backend developer" → search for "backend developer" in "Doha" (remember Doha from before!)
+- User says "I'm in Milan", then later "software engineer" → search for "software engineer" in "Milan"
+
+NEVER ask for information the user already provided earlier in the conversation!
+
+After calling search_matching_jobs:
 - Write a brief, friendly summary of the top jobs found (mention 2-3 top positions by title and company)
 - Explain WHY these jobs match their personality profile based on culture fit
-- The job cards will automatically appear in a sidebar panel
-- You can reference these specific jobs in follow-up questions"""
+- The job cards will automatically appear in a sidebar panel"""
 
 
 # =============================================================================
@@ -701,10 +704,23 @@ class PersonalityCoachService:
         )
 
         try:
+            # Build message history for multi-turn conversation
+            messages = None
+            if message_history:
+                from pydantic_ai import ModelRequest, ModelResponse, UserPromptPart, TextPart
+
+                messages = []
+                for msg in message_history:
+                    if msg['role'] == 'user':
+                        messages.append(ModelRequest(parts=[UserPromptPart(content=msg['content'])]))
+                    else:
+                        messages.append(ModelResponse(parts=[TextPart(content=msg['content'])]))
+
             # Use run_stream for streaming response
             async with self.agent.run_stream(
                 message,
-                deps=context
+                deps=context,
+                message_history=messages
             ) as result:
                 # Stream text response
                 async for chunk in result.stream_text(delta=True):
