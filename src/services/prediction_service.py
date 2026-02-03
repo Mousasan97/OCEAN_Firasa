@@ -940,10 +940,12 @@ class PredictionService:
         return_raw_frames: bool = False
     ) -> Dict:
         """
-        Predict personality from video using ResNet model with multi-frame averaging.
+        Predict personality from video using ResNet model with top-K frame selection.
 
-        Extracts multiple evenly-spaced frames from the video, applies face detection
-        to each, runs ResNet prediction on all frames, and averages the scores.
+        Extracts N evenly-spaced frames from the video, applies face detection
+        to each, runs ResNet prediction on all frames, then selects the top K
+        frames with the strongest predictions (highest sum of trait scores)
+        and averages only those K frames for the final result.
 
         Args:
             video_path: Path to video file
@@ -989,20 +991,42 @@ class PredictionService:
 
             for i, image in enumerate(processed_images):
                 prediction_result = predictor.predict(image, use_tta=use_tta)
-                all_predictions.append(prediction_result.traits)
-                logger.debug(f"Frame {i+1}/{len(processed_images)}: {prediction_result.traits}")
+                # Store prediction with frame index and strength score
+                pred_dict = prediction_result.traits
+                strength = sum(pred_dict.values())  # Sum of all trait scores as strength
+                all_predictions.append({
+                    "frame_idx": i,
+                    "traits": pred_dict,
+                    "strength": strength
+                })
+                logger.debug(f"Frame {i+1}/{len(processed_images)}: {pred_dict} (strength: {strength:.3f})")
 
-            # Average the predictions across all frames
+            # Top-K selection: use only the K frames with highest prediction strength
+            top_k = settings.RESNET_TOP_K
+            if top_k > 0 and top_k < len(all_predictions):
+                # Sort by strength descending and take top K
+                sorted_predictions = sorted(all_predictions, key=lambda x: x["strength"], reverse=True)
+                selected_predictions = sorted_predictions[:top_k]
+                selected_indices = [p["frame_idx"] for p in selected_predictions]
+                aggregation_method = f"top-{top_k}"
+                logger.info(f"Selected top-{top_k} frames by strength: indices {selected_indices}")
+            else:
+                # Use all frames (fallback to mean)
+                selected_predictions = all_predictions
+                selected_indices = list(range(len(all_predictions)))
+                aggregation_method = "mean"
+
+            # Average the predictions across selected frames
             averaged_traits = {}
             for trait in trait_labels:
-                trait_scores = [pred[trait] for pred in all_predictions]
+                trait_scores = [p["traits"][trait] for p in selected_predictions]
                 averaged_traits[trait] = sum(trait_scores) / len(trait_scores)
 
-            # Calculate per-trait standard deviation for metadata
+            # Calculate per-trait standard deviation across ALL frames (for metadata insight)
             trait_std = {}
             for trait in trait_labels:
-                trait_scores = [pred[trait] for pred in all_predictions]
-                mean = averaged_traits[trait]
+                trait_scores = [p["traits"][trait] for p in all_predictions]
+                mean = sum(trait_scores) / len(trait_scores)
                 variance = sum((x - mean) ** 2 for x in trait_scores) / len(trait_scores)
                 trait_std[trait] = variance ** 0.5
 
@@ -1019,18 +1043,22 @@ class PredictionService:
                         "image_size": settings.effective_image_size,
                         "tta_used": use_tta,
                         "device": str(self.model_manager.device),
-                        "num_frames_predicted": len(processed_images),
-                        "aggregation_method": "mean",
-                        "per_trait_std": trait_std
+                        "num_frames_extracted": len(processed_images),
+                        "num_frames_used": len(selected_predictions),
+                        "selected_frame_indices": selected_indices,
+                        "aggregation_method": aggregation_method,
+                        "per_trait_std_all_frames": trait_std
                     }
                 }
             }
 
-            # Include raw frames for multimodal reuse if requested
+            # Include only the selected top-K raw frames for multimodal reuse
             if return_raw_frames and raw_frames:
-                result["raw_frames"] = raw_frames
+                # Only pass the top-K frames that were used for prediction to LLM
+                result["raw_frames"] = [raw_frames[i] for i in selected_indices if i < len(raw_frames)]
+                logger.info(f"Passing {len(result['raw_frames'])} selected frames for multimodal analysis")
 
-            logger.info(f"ResNet video prediction completed (averaged over {len(processed_images)} frames): {averaged_traits}")
+            logger.info(f"ResNet video prediction completed ({aggregation_method} over {len(selected_predictions)}/{len(processed_images)} frames): {averaged_traits}")
             return result
 
         except Exception as e:

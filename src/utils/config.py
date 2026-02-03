@@ -59,8 +59,9 @@ class Settings(BaseSettings):
     VAT_CHECKPOINT_PATH: str = "video_model/best_model.pth"
 
     # ResNet multi-frame settings (when MODEL_TYPE=resnet)
-    # Extract multiple frames and average predictions for better accuracy
-    RESNET_NUM_FRAMES: int = 10  # Number of frames to extract for ResNet (1 = single frame mode)
+    # Extract N frames, select top-K by prediction strength, average those K
+    RESNET_NUM_FRAMES: int = 30  # Number of frames to extract
+    RESNET_TOP_K: int = 3  # Use top K frames by prediction strength (0 = use all frames)
 
     # Preprocessing
     # For ResNet: face, middle, or face+middle (recommended: face+middle)
