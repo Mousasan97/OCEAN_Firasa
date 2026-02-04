@@ -5,6 +5,7 @@ Extracts frames and transcribes audio from video for AI-powered personality insi
 Optimized for parallel processing - can accept pre-extracted frames to avoid
 redundant video reads when used alongside ResNet prediction.
 """
+import gc
 import os
 import asyncio
 import base64
@@ -183,14 +184,19 @@ class MultimodalAnalysisService:
         if total_frames == 0:
             raise PredictionError("No frames could be extracted from video")
 
-        # Select evenly-spaced frames
+        # Select evenly-spaced frames and clean up memory
         if self.num_frames >= total_frames:
-            frames = all_frames
+            # Copy frames before clearing the list
+            frames = list(all_frames)
             logger.info(f"Returning all {len(frames)} frames (requested {self.num_frames})")
         else:
             indices = [int(i * (total_frames - 1) / (self.num_frames - 1)) for i in range(self.num_frames)]
             frames = [all_frames[i] for i in indices]
             logger.info(f"Selected {len(frames)} evenly-spaced frames from {total_frames} total")
+
+        # Explicitly clean up the large frame list to free memory
+        del all_frames
+        gc.collect()
 
         return frames
 

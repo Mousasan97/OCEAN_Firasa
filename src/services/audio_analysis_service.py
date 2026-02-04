@@ -11,6 +11,7 @@ Research-backed acoustic correlates:
 - Voice stability: Lower jitter/shimmer → Emotional stability (low Neuroticism)
 - Spectral brightness: Brighter voice → Extraversion, Energy
 """
+import gc
 import os
 import tempfile
 from typing import Dict, Any, Optional, Tuple
@@ -209,6 +210,10 @@ class AudioAnalysisService:
                     "analysis_version": "1.0"
                 }
             }
+
+            # Clean up audio array to free memory
+            del y
+            gc.collect()
 
             logger.info(f"Audio analysis complete: {len(normalized_metrics)} metrics extracted")
             return result

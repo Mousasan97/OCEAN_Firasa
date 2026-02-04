@@ -25,6 +25,7 @@ Supported video formats: .mp4, .avi, .mov, .mkv, .flv, .wmv, .webm
 from fastapi import APIRouter, UploadFile, File, Depends, Query, Form, HTTPException, status
 from typing import Optional
 from pathlib import Path
+import gc
 import hashlib
 import tempfile
 import os
@@ -709,6 +710,8 @@ async def predict_from_upload(
                     os.unlink(path)
                 except Exception:
                     pass
+        # Force garbage collection to free memory after video processing
+        gc.collect()
 
 
 @router.post("/file", response_model=PredictionResponse)

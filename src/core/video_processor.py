@@ -2,6 +2,7 @@
 Video processing utilities
 """
 import cv2
+import gc
 import numpy as np
 from pathlib import Path
 from typing import Optional, Tuple
@@ -283,10 +284,16 @@ class VideoProcessor:
         if total_frames == 0:
             raise InvalidVideoError("Cannot read any frames from video")
 
-        # Return middle frame
+        # Return middle frame and clean up memory
         mid_idx = total_frames // 2
         logger.info(f"Returning middle frame {mid_idx}/{total_frames}")
-        return all_frames[mid_idx]
+        middle_frame = all_frames[mid_idx].copy()  # Copy the frame we need
+
+        # Explicitly clean up the large frame list
+        del all_frames
+        gc.collect()
+
+        return middle_frame
 
     @staticmethod
     def extract_frame_at_position(
@@ -427,13 +434,18 @@ class VideoProcessor:
 
         # Select evenly-spaced frames from what we have
         if num_frames >= total_frames:
-            frames = all_frames
+            # Copy all frames and clean up original list
+            frames = [f.copy() for f in all_frames]
             logger.info(f"Returning all {len(frames)} frames (requested {num_frames})")
         else:
             # Calculate indices for evenly-spaced frames
             indices = [int(i * (total_frames - 1) / (num_frames - 1)) for i in range(num_frames)]
-            frames = [all_frames[i] for i in indices]
+            frames = [all_frames[i].copy() for i in indices]
             logger.info(f"Selected {len(frames)} evenly-spaced frames from {total_frames} total")
+
+        # Explicitly clean up the large frame list to free memory
+        del all_frames
+        gc.collect()
 
         return frames
 
