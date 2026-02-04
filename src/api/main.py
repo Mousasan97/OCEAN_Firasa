@@ -38,6 +38,8 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 70)
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
+    if settings.MAINTENANCE_MODE:
+        logger.info("⚠️  MAINTENANCE MODE ENABLED - Showing coming soon page")
     logger.info("=" * 70)
 
     # Load model on startup
@@ -174,10 +176,17 @@ if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
     logger.info(f"Mounted static files from: {static_path}")
 
-# Root endpoint - serve web interface
+# Root endpoint - serve web interface or maintenance page
 @app.get("/")
 async def root():
-    """Serve web interface"""
+    """Serve web interface or coming soon page based on MAINTENANCE_MODE"""
+    # Check if maintenance mode is enabled
+    if settings.MAINTENANCE_MODE:
+        coming_soon_path = static_path / "coming-soon.html"
+        if coming_soon_path.exists():
+            return FileResponse(str(coming_soon_path))
+
+    # Serve main app
     index_path = static_path / "index.html"
     if index_path.exists():
         return FileResponse(str(index_path))
@@ -191,6 +200,16 @@ async def root():
             "health": f"{settings.API_V1_PREFIX}/health",
             "note": "Web interface not found. Access API docs at /docs"
         }
+
+
+# Maintenance mode endpoint
+@app.get("/coming-soon")
+async def coming_soon():
+    """Serve coming soon page directly"""
+    coming_soon_path = static_path / "coming-soon.html"
+    if coming_soon_path.exists():
+        return FileResponse(str(coming_soon_path))
+    return {"message": "Coming soon page not found"}
 
 
 if __name__ == "__main__":

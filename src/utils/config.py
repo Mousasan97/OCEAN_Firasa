@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"  # development, staging, production
+    MAINTENANCE_MODE: bool = False  # Set to True to show coming soon page
 
     # API
     API_V1_PREFIX: str = "/api/v1"
