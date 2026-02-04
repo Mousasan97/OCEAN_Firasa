@@ -77,6 +77,11 @@ def get_last_job_search_results() -> Optional[Dict[str, Any]]:
     return results
 
 
+def peek_job_search_results() -> Optional[Dict[str, Any]]:
+    """Check if job search results exist without clearing them."""
+    return _last_job_search_results
+
+
 def store_job_search_results(results: Dict[str, Any]) -> None:
     """Store job search results for backend to append to response."""
     global _last_job_search_results
@@ -84,12 +89,30 @@ def store_job_search_results(results: Dict[str, Any]) -> None:
     logger.info(f"Stored {len(results.get('jobs', []))} job results for later retrieval")
 
 
-def format_cv_context(career_profile: Optional[Dict[str, Any]]) -> str:
+def is_job_search_request(message: str) -> bool:
+    """Check if the message is explicitly asking for jobs."""
+    message_lower = message.lower()
+    job_keywords = [
+        'find job', 'job search', 'job matching', 'matching job',
+        'search for job', 'look for job', 'career opportunit',
+        'find me job', 'match my personality', 'jobs that match',
+        'find jobs', 'search jobs', 'job opportunities'
+    ]
+    return any(keyword in message_lower for keyword in job_keywords)
+
+
+def format_cv_context(career_profile: Optional[Dict[str, Any]], message: str = "") -> str:
     """
     Format CV data as a context string to prepend to user messages.
-    Returns empty string if no CV data.
+    Only prepend for job search requests to avoid triggering unwanted searches.
+    Returns empty string if no CV data or not a job search request.
     """
     if not career_profile:
+        return ""
+
+    # Only prepend CV context for explicit job search requests
+    if message and not is_job_search_request(message):
+        logger.info(f"Skipping CV context - not a job search request: {message[:50]}...")
         return ""
 
     parts = []
@@ -118,22 +141,23 @@ def format_cv_context(career_profile: Optional[Dict[str, Any]]) -> str:
 
 PERSONALITY_COACH_SYSTEM_PROMPT = """You are Firasa, an empathetic personality coach for OCEAN personality analysis.
 
-## CRITICAL RULE - JOB SEARCH WITH CV DATA
-**WHEN YOU SEE [CV: ...] AT THE START OF A MESSAGE AND THE USER ASKS ABOUT JOBS/MATCHING/CAREERS:**
-1. YOU MUST IMMEDIATELY CALL search_matching_jobs - DO NOT ASK QUESTIONS
-2. Extract a GENERIC job title from the CV role:
-   - "Senior Data Engineer" → "Data Engineer"
-   - "AI Research Engineer-Sustainable Energy" → "AI Engineer"
-   - "Software Developer - Payment Systems" → "Software Developer"
-3. Simplify the location: "Milan, Italy" → "Italy", "Bolzano-Italy" → "Italy"
-4. Call search_matching_jobs(role="Data Engineer", location="Italy")
+## JOB SEARCH RULES
+**ONLY call search_matching_jobs when the user EXPLICITLY asks for jobs.**
 
-**TRIGGER PHRASES (when CV data is present, CALL THE TOOL):**
+**TRIGGER PHRASES (ONLY these trigger job search):**
 - "find jobs" / "job matching" / "find matching jobs"
 - "match my personality" / "jobs that match"
 - "career opportunities" / "job search"
 
-**DO NOT ASK** for role or location if [CV: ...] data is visible - USE IT.
+**DO NOT call search_matching_jobs for:**
+- Follow-up messages: "nice", "thanks", "looks good", "tell me more", "great"
+- Questions about personality traits
+- General conversation
+
+**When user asks for jobs:**
+1. Use get_career_profile tool to check if CV data exists
+2. If CV has role/location, use GENERIC title: "Senior Data Engineer" → "Data Engineer"
+3. If no CV, ask user for role and location
 
 ## Response Style
 - Be CONCISE: 2-3 short paragraphs maximum
@@ -846,13 +870,10 @@ class PersonalityCoachService:
             career_profile=career_profile
         )
 
-        # Prepend CV context to message if available
-        cv_context = format_cv_context(career_profile)
-        enhanced_message = cv_context + message
-
-        if cv_context:
-            logger.info(f"CV context prepended: {cv_context.strip()}")
-            logger.info(f"Enhanced message for agent: {enhanced_message[:300]}...")
+        # CV data is available via ctx.deps.career_profile and get_career_profile tool
+        # No need to prepend to message - agent accesses it through tools
+        if career_profile:
+            logger.info(f"CV data available in context: role={career_profile.get('current_role')}, location={career_profile.get('location')}")
 
         try:
             # Build message history for multi-turn conversation
@@ -869,7 +890,7 @@ class PersonalityCoachService:
 
             # Use run_stream for streaming response
             async with self.agent.run_stream(
-                enhanced_message,
+                message,
                 deps=context,
                 message_history=messages
             ) as result:

@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, AsyncGenerator
 
-from src.services.ai_agent_service import get_personality_coach, get_last_job_search_results
+from src.services.ai_agent_service import get_personality_coach, get_last_job_search_results, peek_job_search_results
 from src.services.cultural_fit_service import get_cultural_fit_service
 from src.services.cv_parser_service import get_cv_parser_service
 from src.api.schemas.career import CVUploadResponse, CareerProfile
@@ -191,16 +191,15 @@ async def chat_with_coach_stream(request: ChatRequest):
                 event_data = json.dumps({"type": "chunk", "content": chunk})
                 yield f"data: {event_data}\n\n"
 
-            # Check for job search results (stored globally by the agent tool)
-            # Send as separate event to avoid JSON fragmentation in production
-            job_results = get_last_job_search_results()
-            if job_results:
-                logger.info(f"Sending {len(job_results.get('jobs', []))} job results via SSE")
-                job_event = json.dumps({"type": "job_results", "data": job_results})
-                yield f"data: {job_event}\n\n"
+            # Check if job results are available (don't send data, just signal)
+            # Frontend will fetch via separate HTTP request to avoid SSE fragmentation
+            # Use peek to check without clearing - actual fetch will clear
+            job_results = peek_job_search_results()
+            has_jobs = job_results and len(job_results.get('jobs', [])) > 0
 
-            # Send completion event
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            # Send completion event with jobs_available flag
+            done_event = {"type": "done", "jobs_available": has_jobs}
+            yield f"data: {json.dumps(done_event)}\n\n"
 
         except Exception as e:
             logger.error(f"Chat stream error: {e}")
@@ -216,6 +215,23 @@ async def chat_with_coach_stream(request: ChatRequest):
             "X-Accel-Buffering": "no"  # Disable nginx buffering
         }
     )
+
+
+@router.get("/job-results")
+async def get_job_results():
+    """
+    Get the last job search results.
+
+    Called by frontend after streaming completes to fetch job results
+    via a separate HTTP request (avoids SSE fragmentation issues).
+
+    Returns:
+        Job results if available, or empty object
+    """
+    job_results = get_last_job_search_results()
+    if job_results:
+        return job_results
+    return {"jobs": []}
 
 
 @router.get("/health")

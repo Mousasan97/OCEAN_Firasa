@@ -2245,8 +2245,9 @@ function displaySimilaritySection() {
     const similaritySection = document.getElementById('similaritySection');
     if (!similaritySection) return;
 
-    // Show the section (it's a placeholder for now)
-    similaritySection.style.display = 'block';
+    // DISABLED: Similarity section hidden until real data is available
+    // similaritySection.style.display = 'block';
+    return; // Exit early - section stays hidden
 
     // Initialize navigation buttons (placeholder functionality)
     const prevBtn = document.getElementById('similarityPrev');
@@ -5023,19 +5024,17 @@ async function streamChatResponse(message, streamingEl, scrollContainer) {
                         fullResponse += data.content;
                         streamingEl.innerHTML = parseMarkdown(fullResponse);
                         scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                    } else if (data.type === 'job_results') {
-                        // Handle job results sent as separate event (avoids JSON fragmentation)
-                        if (data.data && data.data.jobs && data.data.jobs.length > 0) {
-                            renderJobCards(data.data.jobs);
-                            switchToJobsTab();
-                            showArtifactPanel();
-                        }
                     } else if (data.type === 'done') {
                         streamingEl.classList.remove('streaming');
                         // Clean any remaining JSON blocks from response (fallback)
                         const cleanedResponse = removeJobResultsJson(fullResponse);
                         streamingEl.innerHTML = parseMarkdown(cleanedResponse);
                         fullResponse = cleanedResponse; // Update for message history
+
+                        // Fetch job results via separate HTTP request if available
+                        if (data.jobs_available) {
+                            fetchAndDisplayJobResults();
+                        }
                     } else if (data.type === 'error') {
                         throw new Error(data.message);
                     }
@@ -5580,6 +5579,29 @@ function removeJobResultsJson(text) {
 
     // Fallback: remove embedded JSON code blocks
     return text.replace(/```json\s*\{[\s\S]*?"type"\s*:\s*"job_results"[\s\S]*?\}\s*```/g, '').trim();
+}
+
+/**
+ * Fetch job results via HTTP and display them
+ * This avoids SSE fragmentation issues with large JSON payloads
+ */
+async function fetchAndDisplayJobResults() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat/job-results`);
+        if (!response.ok) {
+            console.error('Failed to fetch job results:', response.status);
+            return;
+        }
+
+        const data = await response.json();
+        if (data.jobs && data.jobs.length > 0) {
+            renderJobCards(data.jobs);
+            switchToJobsTab();
+            showArtifactPanel();
+        }
+    } catch (error) {
+        console.error('Error fetching job results:', error);
+    }
 }
 
 /**
